@@ -19,8 +19,7 @@ static void parse_peer_and_add_to_container(std::string str, std::vector<bytecoi
 using namespace common;
 using namespace bytecoin;
 
-const static UUID BYTECOIN_NETWORK = {{0x11, 0x10, 0x01, 0x11, 0x11, 0x00, 0x01, 0x01, 0x10, 0x11, 0x00, 0x12, 0x10,
-    0x11, 0x01, 0x10}};  // Bender's nightmare
+const static UUID BYTECOIN_NETWORK = { { 0x4C, 0x7E, 0x03, 0x32, 0x6A, 0x3F, 0x75, 0x16, 0x0B, 0x4C, 0xA1, 0xE3, 0x61, 0xD1, 0xDD, 0x16 } };  // Bender's nightmare
 
 Config::Config(common::CommandLine &cmd)
     : is_testnet(cmd.get_bool("--testnet"))
@@ -164,7 +163,7 @@ Config::Config(common::CommandLine &cmd)
 		    "# Uncomment line below and point it to desired blockchain location. Only full path is supported\r\n"
 		    "# You should manually move content of old data folder to new location after completely stopping "
 		    "bytecoin\r\n\r\n"
-		    "# D:\\BlockChains\\bytecoin\r\n";
+		    "# D:\\Bitsum\\data\r\n";
 #else
 		const char content[] =
 		    "# Edit this file to switch data folder\n"

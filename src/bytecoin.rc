@@ -17,13 +17,13 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "Bytecoin Developers"
-            VALUE "FileDescription", "Bytecoin"
+            VALUE "CompanyName", "Bitsum Foundation"
+            VALUE "FileDescription", "Bitsum"
             VALUE "FileVersion", BYTECOIN_VERSION_WINDOWS_STRING
-            VALUE "InternalName", "bytecoin.rc"
-            VALUE "LegalCopyright", "Copyright (C) Bytecoin Developers 2018"
-            VALUE "OriginalFilename", "bytecoin.rc"
-            VALUE "ProductName", "Bytecoin"
+            VALUE "InternalName", "bitsum.rc"
+            VALUE "LegalCopyright", "Copyright (C) Bitsum Foundation, 2018"
+            VALUE "OriginalFilename", "bitsum.rc"
+            VALUE "ProductName", "Bitsum"
             VALUE "ProductVersion", BYTECOIN_VERSION_WINDOWS_STRING
         END
     END
@@ -35,4 +35,4 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-101               ICON                    "bytecoin.ico"
+101               ICON                    "bitsum.ico"

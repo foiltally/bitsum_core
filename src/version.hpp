@@ -4,8 +4,8 @@
 #pragma once
 
 // defines are for Windows resource compiler
-#define BYTECOIN_VERSION_WINDOWS_COMMA 3, 18, 2, 19
-#define BYTECOIN_VERSION_WINDOWS_STRING "3.0.0-20180219-beta"
+#define BYTECOIN_VERSION_WINDOWS_COMMA 0, 18, 3, 18
+#define BYTECOIN_VERSION_WINDOWS_STRING "0.18.3.18 (BETA)"
 
 #ifdef __cplusplus
 

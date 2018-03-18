@@ -87,7 +87,7 @@ public:
 		return parse_amount(number_of_decimal_places, str, amount);
 	}
 
-	Difficulty next_difficulty(
+	Difficulty next_difficulty(Height blockIndex,
 	    std::vector<Timestamp> timestamps, std::vector<Difficulty> cumulative_difficulties) const;
 
 	bool check_proof_of_work_v1(

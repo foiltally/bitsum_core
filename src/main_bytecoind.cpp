@@ -68,7 +68,7 @@ int main(int argc, const char *argv[]) try {
 
 	const std::string coinFolder = config.get_coin_directory();
 
-	platform::ExclusiveLock coin_lock(coinFolder, "bytecoind.lock");
+	platform::ExclusiveLock coin_lock(coinFolder, "bitsum.lock");
 
 	logging::LoggerManager logManager;
 	logManager.configure_default(config.get_coin_directory("logs"), "bytecoind-");

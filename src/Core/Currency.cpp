@@ -83,8 +83,8 @@ Currency::Currency(bool is_testnet)
 	// random, but genesis should be always
 	// the same
 	std::string genesis_coinbase_tx_hex =
-	    "010a01ff0001ffffffffffff0f029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f"
-	    "5142ee494ffbbd08807121013c086a48c15fb637a96991bc6d53caf77068b5ba6eeb3c82357228c49790584a";
+	    "010a01ff0001ffffffffffff0f029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd0880712101ad656f1f921c6befddf0e69f7a1a7037a50e7e5732eb0ad5887eda4ad76e4c65";
+
 	BinaryArray miner_tx_blob;
 
 	bool r = from_hex(genesis_coinbase_tx_hex, miner_tx_blob);
@@ -391,7 +391,7 @@ bool Currency::parse_amount(size_t number_of_decimal_places, const std::string &
 	return !stream.fail();
 }
 
-Difficulty Currency::next_difficulty(
+Difficulty Currency::next_difficulty(Height blockIndex,
     std::vector<Timestamp> timestamps, std::vector<Difficulty> cumulative_difficulties) const {
 	assert(difficulty_window >= 2);
 
@@ -431,6 +431,59 @@ Difficulty Currency::next_difficulty(
 	low = mul128(totalWork, difficulty_target, &high);
 	if (high != 0 || std::numeric_limits<uint64_t>::max() - low < (timeSpan - 1)) {
 		return 0;
+	}
+	
+	//auto c = (low + timeSpan - 1) / timeSpan;
+	if (blockIndex >= 1000000) {
+		if (high != 0) {
+			return 0;
+		}
+		size_t c_difficultyWindow = 17;
+		size_t c_difficultyCut = 0;
+
+		assert(c_difficultyWindow >= 2);
+
+		size_t t_difficultyWindow = c_difficultyWindow;
+		if (c_difficultyWindow > timestamps.size()) {
+			t_difficultyWindow = timestamps.size();
+		}
+		std::vector<uint64_t> timestamps_tmp(timestamps.end() - t_difficultyWindow, timestamps.end());
+		std::vector<uint64_t> cumulativeDifficulties_tmp(cumulative_difficulties.end() - t_difficultyWindow, cumulative_difficulties.end());
+
+		length = timestamps_tmp.size();
+		assert(length == cumulativeDifficulties_tmp.size());
+		assert(length <= c_difficultyWindow);
+		if (length <= 1) {
+			return 1;
+		}
+
+		sort(timestamps_tmp.begin(), timestamps_tmp.end());
+
+		assert(2 * c_difficultyCut <= c_difficultyWindow - 2);
+		if (length <= c_difficultyWindow - 2 * c_difficultyCut) {
+			cutBegin = 0;
+			cutEnd = length;
+		}
+		else {
+			cutBegin = (length - (c_difficultyWindow - 2 * c_difficultyCut) + 1) / 2;
+			cutEnd = cutBegin + (c_difficultyWindow - 2 * c_difficultyCut);
+		}
+		assert(/*cut_begin >= 0 &&*/ cutBegin + 2 <= cutEnd && cutEnd <= length);
+		timeSpan = timestamps_tmp[cutEnd - 1] - timestamps_tmp[cutBegin];
+		if (timeSpan == 0) {
+			timeSpan = 1;
+		}
+
+		totalWork = cumulativeDifficulties_tmp[cutEnd - 1] - cumulativeDifficulties_tmp[cutBegin];
+		assert(totalWork > 0);
+
+		low = mul128(totalWork, difficulty_target, &high);
+		if (high != 0 || std::numeric_limits<uint64_t>::max() - low < (timeSpan - 1)) {
+			return 0;
+		}
+		uint64_t nextDiffZ = low / timeSpan;
+
+		return nextDiffZ;
 	}
 
 	return (low + timeSpan - 1) / timeSpan;

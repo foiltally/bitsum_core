@@ -1,8 +1,8 @@
-# Bytecoin
+# Bitsum Core
 
 ## About
 
-Welcome to the repository of Bytecoin. Here you will find source code, instructions, wiki resources, and integration tutorials.
+Welcome to the repository of Bitsum Core. Here you will find source code, instructions, wiki resources, and integration tutorials.
 
 Contents
 * Building on Linux 64-bit
@@ -37,55 +37,55 @@ To go futher you have to have a number of packages and utilities.
     ```
     If version is too old, follow instructions on [the official site](http://www.boost.org/users/download/).
 
-Then create directory `bcndev` somewhere and go there:
+Then create directory `bitsum` somewhere and go there:
 ```
-$> mkdir bcndev
-$> cd bcndev
-```
-
-Git-clone (or git-pull) Bytecoin source code in that folder:
-```
-$bcndev> git clone https://github.com/bcndev/bytecoin.git
+$> mkdir bitsum
+$> cd bitsum
 ```
 
-Put LMDB source code in `bcndev` folder (source files are referenced via relative paths, so you do not need to separately build it):
+Git-clone (or git-pull) Bitsum Core source code in that folder:
 ```
-$bcndev> git clone https://github.com/LMDB/lmdb.git
+$bitsum> git clone https://github.com/BitsumFoundation/bitsum_core.git
 ```
 
-Create build directory inside bytecoin, go there and run CMake and Make:
+Put LMDB source code in `bitsum` folder (source files are referenced via relative paths, so you do not need to separately build it):
 ```
-$bcndev> mkdir bytecoin/build
-$bcndev> cd bytecoin/build
-$bcndev/bytecoin/build> cmake ..
-$bcndev/bytecoin/build> time make -j4
+$bitsum> git clone https://github.com/LMDB/lmdb.git
+```
+
+Create build directory inside bitsum_core, go there and run CMake and Make:
+```
+$bitsum> mkdir bitsum_core/build
+$bitsum> cd bitsum_core/build
+$bitsum/bitsum_core/build> cmake ..
+$bitsum/bitsum_core/build> time make -j4
 ```
 
 Check built binaries by running them from `../bin` folder
 ```
-$bcndev/bytecoin/build> ../bin/bytecoind -v
+$bitsum/bitsum_core/build> ../bin/bitsumd -v
 ```
 
 ### Building with specific options
 
-Install OpenSSL to `bcndev/openssl` folder. (Use switch `linux-x86_64-clang` instead of `linux-x86_64` if using clang.)
+Install OpenSSL to `bitsum/openssl` folder. (Use switch `linux-x86_64-clang` instead of `linux-x86_64` if using clang.)
 ```
-$bcndev> git clone https://github.com/openssl/openssl.git
-$bcndev> cd openssl
-$bcndev/openssl> ./Configure linux-x86_64
-$bcndev/openssl> time make -j4
-$bcndev/openssl> cd ..
+$bitsum> git clone https://github.com/openssl/openssl.git
+$bitsum> cd openssl
+$bitsum/openssl> ./Configure linux-x86_64
+$bitsum/openssl> time make -j4
+$bitsum/openssl> cd ..
 ```
 
-Download amalgamated [SQLite 3](https://www.sqlite.org/download.html) and unpack it into `bcndev/sqlite` folder (source files are referenced via relative paths, so you do not need to separately build it).
+Download amalgamated [SQLite 3](https://www.sqlite.org/download.html) and unpack it into `bitsum/sqlite` folder (source files are referenced via relative paths, so you do not need to separately build it).
 
 Below are the commands which add OpenSSL support and switch from LMDB to SQLite by providing options to CMake:
 
 ```
-$bcndev> mkdir bytecoin/build
-$bcndev> cd bytecoin/build
-$bcndev/bytecoin/build> cmake -DBYTECOIN_SSL=1 -DBYTECOIN_SQLITE=1 ..
-$bcndev/bytecoin/build> time make -j4
+$bitsum> mkdir bitsum_core/build
+$bitsum> cd bitsum_core/build
+$bitsum/bitsum_core/build> cmake -DBYTECOIN_SSL=1 -DBYTECOIN_SQLITE=1 ..
+$bitsum/bitsum_core/build> time make -j4
 ```
 
 ## Building on Mac OSX
@@ -99,33 +99,33 @@ Then open terminal and install CMake and Boost:
 * `brew install cmake`
 * `brew install boost`
 
-Create directory `bcndev` somewhere and go there:
+Create directory `bitsum` somewhere and go there:
 ```
-$~/Downloads> mkdir <path-to-bcndev-folder>
-$~/Downloads> cd <path-to-bcndev-folder>
-```
-
-Git-clone (or git-pull) Bytecoin source code in that folder:
-```
-$bcndev> git clone https://github.com/bcndev/bytecoin.git
+$~/Downloads> mkdir <path-to-bitsum-folder>
+$~/Downloads> cd <path-to-bitsum-folder>
 ```
 
-Put LMDB source code in `bcndev` folder (source files are referenced via relative paths, so you do not need to separately build it):
+Git-clone (or git-pull) Bitsum Core source code in that folder:
 ```
-$bcndev> git clone https://github.com/LMDB/lmdb.git
+$bitsum> git clone https://github.com/BitsumFoundation/bitsum_core.git
 ```
 
-Create build directory inside bytecoin, go there and run CMake and Make:
+Put LMDB source code in `bitsum` folder (source files are referenced via relative paths, so you do not need to separately build it):
 ```
-$bcndev> mkdir bytecoin/build
-$bcndev> cd bytecoin/build
-$bcndev/bytecoin/build> cmake ..
-$bcndev/bytecoin/build> time make -j4
+$bitsum> git clone https://github.com/LMDB/lmdb.git
+```
+
+Create build directory inside bitsum_core, go there and run CMake and Make:
+```
+$bitsum> mkdir bitsum_core/build
+$bitsum> cd bitsum_core/build
+$bitsum/bitsum_core/build> cmake ..
+$bitsum/bitsum_core/build> time make -j4
 ```
 
 Check built binaries by running them from `../bin` folder:
 ```
-$bcndev/bytecoin/build> ../bin/bytecoind -v
+$bitsum/bitsum_core/build> ../bin/bitsumd -v
 ```
 
 ### Building with specific options
@@ -145,35 +145,35 @@ $~/Downloads/boost_1_58_0> ./bootstrap.sh
 $~/Downloads/boost_1_58_0> ./b2 -a -j 4 cxxflags="-stdlib=libc++ -std=c++14 -mmacosx-version-min=10.11 -isysroot/Users/user/Downloads/MacOSX10.11.sdk" install`
 ```
 
-Install OpenSSL to `bcndev/openssl` folder:
+Install OpenSSL to `bitsum/openssl` folder:
 ```
-$~/Downloads/bcndev> git clone https://github.com/openssl/openssl.git
-$~/Downloads/bcndev> cd openssl
+$~/Downloads/bitsum> git clone https://github.com/openssl/openssl.git
+$~/Downloads/bitsum> cd openssl
 ```
 
 If you need binaries to run on all versions of OS X starting from El Capitan, you need to build OpenSSL targeting El Capitan SDK.
 ```
-$bcndev/openssl> ./Configure darwin64-x86_64-cc no-shared -mmacosx-version-min=10.11 -isysroot/Users/user/Downloads/MacOSX10.11.sdk
+$bitsum/openssl> ./Configure darwin64-x86_64-cc no-shared -mmacosx-version-min=10.11 -isysroot/Users/user/Downloads/MacOSX10.11.sdk
 ```
 Otherwise just use
 ```
-$bcndev/openssl> ./Configure darwin64-x86_64-cc no-shared
+$bitsum/openssl> ./Configure darwin64-x86_64-cc no-shared
 ```
 
 ```
-$bcndev/openssl> time make -j4
-$bcndev/openssl> cd ..
+$bitsum/openssl> time make -j4
+$bitsum/openssl> cd ..
 ```
 
-Download amalgamated [SQLite 3](https://www.sqlite.org/download.html) and unpack it into `bcndev/sqlite` folder (source files are referenced via relative paths, so you do not need to separately build it).
+Download amalgamated [SQLite 3](https://www.sqlite.org/download.html) and unpack it into `bitsum/sqlite` folder (source files are referenced via relative paths, so you do not need to separately build it).
 
 You add OpenSSL support or switch from LMDB to SQLite by providing options to CMake:
 
 ```
-$bcndev> mkdir bytecoin/build
-$bcndev> cd bytecoin/build
-$bcndev/bytecoin/build> cmake -DBYTECOIN_SSL=1 -DBYTECOIN_SQLITE=1 ..
-$bcndev/bytecoin/build> time make -j4
+$bitsum> mkdir bitsum_core/build
+$bitsum> cd bitsum_core/build
+$bitsum/bitsum_core/build> cmake -DBYTECOIN_SSL=1 -DBYTECOIN_SQLITE=1 ..
+$bitsum/bitsum_core/build> time make -j4
 ```
 
 ## Building on Windows
@@ -199,23 +199,23 @@ Set `BOOST_INCLUDEDIR` to `C:\boost_1_58_0`
 
 Set `BOOST_LIBRARYDIR` to `C:\boost_1_58_0\stage\lib`
 
-Now create directory `bcndev` somewhere
+Now create directory `bitsum` somewhere
 ```
-$C:\> mkdir bcndev
-$C:\> cd bcndev
+$C:\> mkdir bitsum
+$C:\> cd bitsum
 ```
 
-You need bytecoin source code
+You need Bitsum Core source code
 ```
-$C:\bcndev> git clone https://github.com/bcndev/bytecoin.git
+$C:\bitsum> git clone https://github.com/BitsumFoundation/bitsum_core.git
 ```
 
 You need lmdb in the same folder (source files are referenced via relative paths, so you do not need to separately build it)
 ```
-$C:\bcndev> git clone https://github.com/LMDB/lmdb.git
+$C:\bitsum> git clone https://github.com/LMDB/lmdb.git
 ```
 
-Now launch Visual Studio, in File menu select `Open Folder`, select `C:\bcndev\bytecoin` folder.
+Now launch Visual Studio, in File menu select `Open Folder`, select `C:\bitsum\bitsum_core` folder.
 Wait until CMake finishes running and `Build` appears in main menu.
 Select `x64-Debug` or `x64-Release` from standard toolbar, and then `Build/Build Solution` from the main menu.
 
@@ -223,17 +223,17 @@ You cannot add options to CMake running inside Visual Studio so just edit `CMake
 
 ## Building on 32-bit x86 platforms, iOS, Android and other ARM platforms
 
-Bytecoin works on 32-bit systems if SQLite is used instead of LMDB (we've experienced lots of problems building and running with lmdb in 32-bit compatibility mode, especially on iOS).
+Bitsum Core works on 32-bit systems if SQLite is used instead of LMDB (we've experienced lots of problems building and running with lmdb in 32-bit compatibility mode, especially on iOS).
 
 Therefore SQLite option is automatically selected by CMake on 32-bit platforms and you must have SQLite downloaded as explained in appropriate sections above.
 
 We build official x86 32-bit version for Windows only, because there is zero demand for 32-bit version for Linux or Mac.
 
-Building source code for iOS, Android, Raspberry PI, etc is possible (we have experimental `bytecoind` and `walletd` running on ARM64 iPhone) but requires major skills on your part. __TBD__
+Building source code for iOS, Android, Raspberry PI, etc is possible but requires major skills on your part. __TBD__
 
 ## Building on Big-Endian platforms
 
-Currently it is impossible to run Bytecoin on any Big-Endian platform, due to lots of endianess-dependent code. This may be fixed in the future. If you wish to run on Big-Endian platform, please contact us.
+Currently it is impossible to run Bitsum Core on any Big-Endian platform, due to lots of endianess-dependent code. This may be fixed in the future. If you wish to run on Big-Endian platform, please contact us.
 
 ## Building with parameters
 

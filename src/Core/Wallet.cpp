@@ -138,14 +138,23 @@ Wallet::Wallet(const std::string &path, const std::string &password, bool create
 			generate_new_address(SecretKey{}, m_creation_timestamp);
 			first_record = m_wallet_records.begin()->second;
 		} else {
-			if (import_keys.size() != 256)
+			if (import_keys.size() != 128)//256)
 				throw Exception(api::WALLET_FILE_DECRYPT_ERROR, "Imported keys should be exactly 128 hex bytes");
 			WalletRecord record{};
-			if (!common::pod_from_hex(import_keys.substr(0, 64), record.spend_public_key) ||
-			    !common::pod_from_hex(import_keys.substr(64, 64), m_view_public_key) ||
-			    !common::pod_from_hex(import_keys.substr(128, 64), record.spend_secret_key) ||
-			    !common::pod_from_hex(import_keys.substr(192, 64), m_view_secret_key))
+			if (//!common::pod_from_hex(import_keys.substr(0, 64), record.spend_public_key) ||
+				//!common::pod_from_hex(import_keys.substr(64, 64), m_view_public_key) ||
+				!common::pod_from_hex(import_keys.substr(0, 64), record.spend_secret_key) ||
+				!common::pod_from_hex(import_keys.substr(64, 64), m_view_secret_key))
 				throw Exception(api::WALLET_FILE_DECRYPT_ERROR, "Imported keys should contain only hex bytes");
+			
+			bool r = crypto::secret_key_to_public_key(record.spend_secret_key, record.spend_public_key);
+			r = crypto::secret_key_to_public_key(m_view_secret_key, m_view_public_key);
+			std::cout << r;
+			//if (!common::pod_from_hex(import_keys.substr(0, 64), record.spend_public_key) ||
+			//    !common::pod_from_hex(import_keys.substr(64, 64), m_view_public_key) ||
+			//    !common::pod_from_hex(import_keys.substr(128, 64), record.spend_secret_key) ||
+			//    !common::pod_from_hex(import_keys.substr(192, 64), m_view_secret_key))
+			//	throw Exception(api::WALLET_FILE_DECRYPT_ERROR, "Imported keys should contain only hex bytes");
 			if (!keys_match(m_view_secret_key, m_view_public_key))
 				throw Exception(
 				    api::WALLET_FILE_DECRYPT_ERROR, "Imported secret view key does not match corresponding public key");
