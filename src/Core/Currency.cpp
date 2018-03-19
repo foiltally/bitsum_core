@@ -393,16 +393,21 @@ bool Currency::parse_amount(size_t number_of_decimal_places, const std::string &
 
 Difficulty Currency::next_difficulty(Height blockIndex,
     std::vector<Timestamp> timestamps, std::vector<Difficulty> cumulative_difficulties) const {
+	std::vector<Timestamp> timestamps_o(timestamps);
+	std::vector<Difficulty> cumulativeDifficulties_o(cumulative_difficulties);
+	size_t c_difficultyWindow = difficulty_window;
+	size_t c_difficultyCut = difficulty_cut;
+
 	assert(difficulty_window >= 2);
 
-	if (timestamps.size() > difficulty_window) {
-		timestamps.resize(difficulty_window);
-		cumulative_difficulties.resize(difficulty_window);
+	if (timestamps.size() > c_difficultyWindow) {
+		timestamps.resize(c_difficultyWindow);
+		cumulative_difficulties.resize(c_difficultyWindow);
 	}
 
 	size_t length = timestamps.size();
 	assert(length == cumulative_difficulties.size());
-	assert(length <= difficulty_window);
+	assert(length <= c_difficultyWindow);
 	if (length <= 1) {
 		return 1;
 	}
@@ -410,13 +415,13 @@ Difficulty Currency::next_difficulty(Height blockIndex,
 	sort(timestamps.begin(), timestamps.end());
 
 	size_t cutBegin, cutEnd;
-	assert(2 * difficulty_cut <= difficulty_window - 2);
-	if (length <= difficulty_window - 2 * difficulty_cut) {
+	assert(2 * c_difficultyCut <= c_difficultyWindow - 2);
+	if (length <= c_difficultyWindow - 2 * c_difficultyCut) {
 		cutBegin = 0;
 		cutEnd   = length;
 	} else {
-		cutBegin = (length - (difficulty_window - 2 * difficulty_cut) + 1) / 2;
-		cutEnd   = cutBegin + (difficulty_window - 2 * difficulty_cut);
+		cutBegin = (length - (c_difficultyWindow - 2 * c_difficultyCut) + 1) / 2;
+		cutEnd   = cutBegin + (c_difficultyWindow - 2 * c_difficultyCut);
 	}
 	assert(cutBegin + 2 <= cutEnd && cutEnd <= length);
 	Timestamp timeSpan = timestamps[cutEnd - 1] - timestamps[cutBegin];
@@ -434,12 +439,13 @@ Difficulty Currency::next_difficulty(Height blockIndex,
 	}
 	
 	//auto c = (low + timeSpan - 1) / timeSpan;
-	if (blockIndex >= 1000000) {
+	if (blockIndex >= 106195) {
 		if (high != 0) {
 			return 0;
 		}
-		size_t c_difficultyWindow = 17;
-		size_t c_difficultyCut = 0;
+
+		c_difficultyWindow = 17;
+		c_difficultyCut = 0;
 
 		assert(c_difficultyWindow >= 2);
 
@@ -447,8 +453,8 @@ Difficulty Currency::next_difficulty(Height blockIndex,
 		if (c_difficultyWindow > timestamps.size()) {
 			t_difficultyWindow = timestamps.size();
 		}
-		std::vector<uint64_t> timestamps_tmp(timestamps.end() - t_difficultyWindow, timestamps.end());
-		std::vector<uint64_t> cumulativeDifficulties_tmp(cumulative_difficulties.end() - t_difficultyWindow, cumulative_difficulties.end());
+		std::vector<uint64_t> timestamps_tmp(timestamps_o.end() - t_difficultyWindow, timestamps_o.end());
+		std::vector<uint64_t> cumulativeDifficulties_tmp(cumulativeDifficulties_o.end() - t_difficultyWindow, cumulativeDifficulties_o.end());
 
 		length = timestamps_tmp.size();
 		assert(length == cumulativeDifficulties_tmp.size());
@@ -482,7 +488,9 @@ Difficulty Currency::next_difficulty(Height blockIndex,
 			return 0;
 		}
 		uint64_t nextDiffZ = low / timeSpan;
-
+		if (nextDiffZ <= 100) {
+			nextDiffZ = 100;
+		}
 		return nextDiffZ;
 	}
 

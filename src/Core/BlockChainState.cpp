@@ -237,7 +237,7 @@ std::string BlockChainState::get_standalone_consensus_error(
 			timestamps.at(pos)   = it->timestamp;
 			difficulties.at(pos) = it->cumulative_difficulty;
 		}
-		info.difficulty            = m_currency.next_difficulty(get_tip_height(), timestamps, difficulties);
+		info.difficulty            = m_currency.next_difficulty(prev_info.height, timestamps, difficulties);
 		info.cumulative_difficulty = prev_info.cumulative_difficulty + info.difficulty;
 	}
 
@@ -337,7 +337,7 @@ bool BlockChainState::create_mining_block_template(BlockTemplate &b, const Accou
 			timestamps.push_back(it->timestamp);
 			difficulties.push_back(it->cumulative_difficulty);
 		}
-		difficulty = m_currency.next_difficulty(get_tip_height(), timestamps, difficulties);
+		difficulty = m_currency.next_difficulty(height, timestamps, difficulties);
 	}
 	if (difficulty == 0) {
 		//    log(Logging::ERROR, Logging::BrightRed) << "difficulty overhead.";
