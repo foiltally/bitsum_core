@@ -14,7 +14,11 @@
 using namespace bytecoin;
 using namespace common;
 
-extern "C" _declspec(dllexport)int __DaemonRun()
+#if defined(_WIN32)
+extern "C" _declspec(dllexport) int __DaemonRun()
+#else
+extern "C" int __DaemonRun()
+#endif
 {
 	try
 	{
@@ -24,21 +28,25 @@ extern "C" _declspec(dllexport)int __DaemonRun()
 		common::CommandLine cmd(1, 0);
 		bytecoin::Config config(cmd);
 		bytecoin::Currency currency(config.is_testnet);
-		const std::string coinFolder = config.get_coin_directory();
+		const std::string coinFolder = config.get_data_folder();
 
-		platform::ExclusiveLock coin_lock(coinFolder, "bitsum.lock");
+		platform::ExclusiveLock coin_lock(coinFolder, "bitsumd.lock");
 
 		logging::LoggerManager logManager;
-		logManager.configure_default(config.get_coin_directory("logs"), "daemon-");
+		logManager.configure_default(config.get_data_folder("logs"), "bitsumd-");
+		
 		BlockChainState block_chain(logManager, config, currency);
+		
 		boost::asio::io_service io;
 		platform::EventLoop run_loop(io);
+		
 		Node node(logManager, config, block_chain);
-		auto idea_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - idea_start);
-		std::cout << "Daemon started seconds=" << double(idea_ms.count()) / 1000 << std::endl;
-
+		
+		auto idea_ms =
+			std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - idea_start);
+		std::cout << "bitsumd started seconds=" << double(idea_ms.count()) / 1000 << std::endl;
 		while (!io.stopped()) {
-			if (node.on_idle()) // Using it to load blockchain
+			if (node.on_idle())  // Using it to load blockchain
 				io.poll();
 			else
 				io.run_one();
@@ -52,7 +60,11 @@ extern "C" _declspec(dllexport)int __DaemonRun()
 	}
 }
 
-extern "C" _declspec(dllexport)int __WalletRun(char path[], char password[])
+#if defined(_WIN32)
+extern "C" _declspec(dllexport) int __WalletRun(char path[], char password[])
+#else
+extern "C" int __WalletRun(char path[], char password[])
+#endif
 {
 	common::console::UnicodeConsoleSetup console_setup;
 	auto idea_start = std::chrono::high_resolution_clock::now();
@@ -60,14 +72,14 @@ extern "C" _declspec(dllexport)int __WalletRun(char path[], char password[])
 	bytecoin::Config config(cmd);
 	bytecoin::Currency currency(config.is_testnet);
 
-	const std::string coinFolder = config.get_coin_directory();
+	const std::string coinFolder = config.get_data_folder();
 	std::unique_ptr<platform::ExclusiveLock> walletcache_lock;
 	std::unique_ptr<Wallet> wallet;
 
 	try {
 		wallet = std::make_unique<Wallet>(path, password, false);
 		walletcache_lock = std::make_unique<platform::ExclusiveLock>(
-			config.get_coin_directory("wallet_cache"), wallet->get_cache_name() + ".lock");
+			config.get_data_folder("wallet_cache"), wallet->get_cache_name() + ".lock");
 	}
 	catch (const std::ios_base::failure &ex) {
 		std::cout << ex.what() << std::endl;
@@ -83,7 +95,7 @@ extern "C" _declspec(dllexport)int __WalletRun(char path[], char password[])
 	}
 
 	logging::LoggerManager logManagerWalletNode;
-	logManagerWalletNode.configure_default(config.get_coin_directory("logs"), "wallet-");
+	logManagerWalletNode.configure_default(config.get_data_folder("logs"), "wallet-");
 
 	WalletState wallet_state(*wallet, logManagerWalletNode, config, currency);
 	boost::asio::io_service io;
@@ -101,7 +113,7 @@ extern "C" _declspec(dllexport)int __WalletRun(char path[], char password[])
 
 	auto idea_ms =
 		std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - idea_start);
-	std::cout << "Wallet started seconds=" << double(idea_ms.count()) / 1000 << std::endl;
+	std::cout << "wallet-rpc started seconds=" << double(idea_ms.count()) / 1000 << std::endl;
 
 	while (!io.stopped()) {
 		if (node && node->on_idle())  // We load blockchain there
@@ -113,7 +125,11 @@ extern "C" _declspec(dllexport)int __WalletRun(char path[], char password[])
 	return 0;
 }
 
-extern "C" _declspec(dllexport)int __WalletCreateContainer(char path[], char password[])
+#if defined(_WIN32)
+extern "C" _declspec(dllexport) int __WalletCreateContainer(char path[], char password[])
+#else
+extern "C" int __WalletCreateContainer(char path[], char password[])
+#endif
 {
 	std::unique_ptr<Wallet> wallet;
 
@@ -137,7 +153,11 @@ extern "C" _declspec(dllexport)int __WalletCreateContainer(char path[], char pas
 	}
 }
 
-extern "C" _declspec(dllexport)int __WalletImportContainer(char path[], char password[], char keys[])
+#if defined(_WIN32)
+extern "C" _declspec(dllexport) int __WalletImportContainer(char path[], char password[], char keys[])
+#else
+extern "C" int __WalletImportContainer(char path[], char password[], char keys[])
+#endif
 {
 	std::unique_ptr<Wallet> wallet;
 
@@ -160,7 +180,11 @@ extern "C" _declspec(dllexport)int __WalletImportContainer(char path[], char pas
 	}
 }
 
-extern "C" _declspec(dllexport)int __WalletChangeContainerPassword(char path[], char oldPassword[], char newPassword[])
+#if defined(_WIN32)
+extern "C" _declspec(dllexport) int __WalletChangeContainerPassword(char path[], char oldPassword[], char newPassword[])
+#else
+extern "C" int __WalletChangeContainerPassword(char path[], char oldPassword[], char newPassword[])
+#endif
 {
 	std::unique_ptr<Wallet> wallet;
 
@@ -183,7 +207,11 @@ extern "C" _declspec(dllexport)int __WalletChangeContainerPassword(char path[], 
 	}
 }
 
-extern "C" _declspec(dllexport)bool __CheckAddress(char address[])
+#if defined(_WIN32)
+extern "C" _declspec(dllexport) bool __CheckAddress(char address[])
+#else
+extern "C" bool __CheckAddress(char address[])
+#endif
 {
 	BinaryArray data;
 	uint64_t prefix = 154;

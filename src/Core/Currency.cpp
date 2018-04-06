@@ -453,8 +453,8 @@ Difficulty Currency::next_difficulty(Height blockIndex,
 		if (c_difficultyWindow > timestamps.size()) {
 			t_difficultyWindow = timestamps.size();
 		}
-		std::vector<uint64_t> timestamps_tmp(timestamps_o.end() - t_difficultyWindow, timestamps_o.end());
-		std::vector<uint64_t> cumulativeDifficulties_tmp(cumulativeDifficulties_o.end() - t_difficultyWindow, cumulativeDifficulties_o.end());
+		std::vector<Timestamp> timestamps_tmp(timestamps_o.end() - t_difficultyWindow, timestamps_o.end());
+		std::vector<Difficulty> cumulativeDifficulties_tmp(cumulativeDifficulties_o.end() - t_difficultyWindow, cumulativeDifficulties_o.end());
 
 		length = timestamps_tmp.size();
 		assert(length == cumulativeDifficulties_tmp.size());

@@ -61,7 +61,7 @@ Config::Config(common::CommandLine &cmd)
 	}
 	if (const char *pa = cmd.get("--p2p-external-port"))
 		p2p_external_port = boost::lexical_cast<uint16_t>(pa);
-	if (const char *pa = cmd.get("--walletd-bind-address")) {
+	if (const char *pa = cmd.get("--wallet-rpc-bind-address")) {
 		if (!common::parse_ip_address_and_port(pa, walletd_bind_ip, walletd_bind_port))
 			throw std::runtime_error("Wrong address format " + std::string(pa) + ", should be ip:port");
 	}
@@ -79,20 +79,20 @@ Config::Config(common::CommandLine &cmd)
 		    "Setting --ssl_certificate_password impossible - this binary is built without OpenSSL");
 #endif
 	}
-	if (const char *pa = cmd.get("--bytecoind-authorization")) {
+	if (const char *pa = cmd.get("--rpc-authorization")) {
 		bytecoind_authorization = common::base64::encode(BinaryArray(pa, pa + strlen(pa)));
 	}
-	if (const char *pa = cmd.get("--bytecoind-bind-address")) {
+	if (const char *pa = cmd.get("--daemon-rpc-bind-address")) {
 		if (!common::parse_ip_address_and_port(pa, bytecoind_bind_ip, bytecoind_bind_port))
 			throw std::runtime_error("Wrong address format " + std::string(pa) + ", should be ip:port");
 	}
-	if (const char *pa = cmd.get("--bytecoind-remote-address")) {
+	if (const char *pa = cmd.get("--daemon-remote-address")) {
 		std::string addr         = pa;
 		const std::string prefix = "https://";
 		if (addr.find(prefix) == 0) {
 #if !platform_USE_SSL
 			throw std::runtime_error(
-			    "Using https in --bytecoind-remote-address impossible - this binary is built without OpenSSL");
+			    "Using https in --daemon-remote-address impossible - this binary is built without OpenSSL");
 #endif
 			std::string sip;
 			std::string sport;

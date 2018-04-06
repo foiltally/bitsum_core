@@ -1,5 +1,5 @@
 // Copyright (c) 2012-2018, The CryptoNote developers, The Bytecoin developers.
-// Licensed under the GNU Lesser General Public License. See LICENSING.md for details.
+// Licensed under the GNU Lesser General Public License. See LICENSE for details.
 
 #include "CryptoNoteTools.hpp"
 #include "WalletSerializationV1.h"
@@ -44,8 +44,11 @@ static void decrypt_key_pair(
 }
 
 static void encrypt_key_pair(EncryptedWalletRecord &r, PublicKey pk, SecretKey sk, Timestamp ct, const WalletKey &key) {
-	ContainerStorageWalletRecord rec{pk, sk, ct};
-	r.iv = crypto::rand<crypto::chacha8_iv>();
+	ContainerStorageWalletRecord rec;
+	rec.pk = pk;
+	rec.sk = sk;
+	rec.ct = ct;
+	r.iv   = crypto::rand<crypto::chacha8_iv>();
 	chacha8(&rec, sizeof(r.data), key, r.iv, r.data);
 }
 
@@ -62,8 +65,9 @@ void Wallet::load_container_storage() {
 	if (version < SERIALIZATION_VERSION_V2)
 		throw Exception(api::WALLET_FILE_DECRYPT_ERROR, "Wallet version too old");
 
+	Timestamp creation_timestamp = 0;  // We ignore view keys timestamp on load
 	decrypt_key_pair(
-	    prefix.encrypted_view_keys, m_view_public_key, m_view_secret_key, m_creation_timestamp, m_wallet_key);
+	    prefix.encrypted_view_keys, m_view_public_key, m_view_secret_key, creation_timestamp, m_wallet_key);
 	if (!keys_match(m_view_secret_key, m_view_public_key))
 		throw Exception(api::WALLET_FILE_DECRYPT_ERROR, "Restored view public key doesn't correspond to secret key");
 
@@ -122,39 +126,30 @@ Wallet::Wallet(const std::string &path, const std::string &password, bool create
 	if (create) {
 		try {
 			file.reset(new platform::FileStream(path, platform::FileStream::READ_EXISTING));
-		} catch (const std::ios_base::failure &) {
+		} catch (const common::StreamError &) {
 			// file does not exist
 		}
 		if (file.get())  // opened ok
 			throw Exception(api::WALLET_FILE_EXISTS,
-			    "Will not overwrite existing "
-			    "wallet - delete it first or "
-			    "specify another file " +
-			        path);
+			    "Will not overwrite existing wallet - delete it first or specify another file " + path);
 
 		if (import_keys.empty()) {
-			m_creation_timestamp = m_oldest_timestamp = static_cast<Timestamp>(std::time(nullptr));
-			crypto::random_keys(m_view_public_key, m_view_secret_key);
-			generate_new_address(SecretKey{}, m_creation_timestamp);
+			m_oldest_timestamp = static_cast<Timestamp>(std::time(nullptr));
+			crypto::random_keypair(m_view_public_key, m_view_secret_key);
+			generate_new_address(SecretKey{}, m_oldest_timestamp);
 			first_record = m_wallet_records.begin()->second;
 		} else {
-			if (import_keys.size() != 128)//256)
+			if (import_keys.size() != 128)
 				throw Exception(api::WALLET_FILE_DECRYPT_ERROR, "Imported keys should be exactly 128 hex bytes");
 			WalletRecord record{};
 			if (//!common::pod_from_hex(import_keys.substr(0, 64), record.spend_public_key) ||
-				//!common::pod_from_hex(import_keys.substr(64, 64), m_view_public_key) ||
-				!common::pod_from_hex(import_keys.substr(0, 64), record.spend_secret_key) ||
-				!common::pod_from_hex(import_keys.substr(64, 64), m_view_secret_key))
+			    //!common::pod_from_hex(import_keys.substr(64, 64), m_view_public_key) ||
+			    !common::pod_from_hex(import_keys.substr(0, 64), record.spend_secret_key) ||
+			    !common::pod_from_hex(import_keys.substr(64, 64), m_view_secret_key))
 				throw Exception(api::WALLET_FILE_DECRYPT_ERROR, "Imported keys should contain only hex bytes");
 			
-			bool r = crypto::secret_key_to_public_key(record.spend_secret_key, record.spend_public_key);
-			r = crypto::secret_key_to_public_key(m_view_secret_key, m_view_public_key);
-			std::cout << r;
-			//if (!common::pod_from_hex(import_keys.substr(0, 64), record.spend_public_key) ||
-			//    !common::pod_from_hex(import_keys.substr(64, 64), m_view_public_key) ||
-			//    !common::pod_from_hex(import_keys.substr(128, 64), record.spend_secret_key) ||
-			//    !common::pod_from_hex(import_keys.substr(192, 64), m_view_secret_key))
-			//	throw Exception(api::WALLET_FILE_DECRYPT_ERROR, "Imported keys should contain only hex bytes");
+			crypto::secret_key_to_public_key(record.spend_secret_key, record.spend_public_key);
+			crypto::secret_key_to_public_key(m_view_secret_key, m_view_public_key);
 			if (!keys_match(m_view_secret_key, m_view_public_key))
 				throw Exception(
 				    api::WALLET_FILE_DECRYPT_ERROR, "Imported secret view key does not match corresponding public key");
@@ -162,14 +157,14 @@ Wallet::Wallet(const std::string &path, const std::string &password, bool create
 				throw Exception(api::WALLET_FILE_DECRYPT_ERROR,
 				    "Imported secret spend key does not match corresponding public key");
 			m_wallet_records.insert(std::make_pair(record.spend_public_key, record));
-			first_record         = m_wallet_records.begin()->second;
-			m_creation_timestamp = m_oldest_timestamp = 0;  // Alas, will scan entire blockchain
+			first_record       = m_wallet_records.begin()->second;
+			m_oldest_timestamp = 0;  // Alas, will scan entire blockchain
 		}
 		save_and_check();
 	}
 	try {
 		file.reset(new platform::FileStream(path, platform::FileStream::READ_WRITE_EXISTING));
-	} catch (const std::ios_base::failure &) {  // Read-only media?
+	} catch (const common::StreamError &) {  // Read-only media?
 		file.reset(new platform::FileStream(path, platform::FileStream::READ_EXISTING));
 	}
 	uint8_t version = 0;
@@ -180,7 +175,7 @@ Wallet::Wallet(const std::string &path, const std::string &password, bool create
 	if (version < SERIALIZATION_VERSION_V2) {
 		try {
 			load_legacy_wallet_file();
-		} catch (const std::ios_base::failure &ex) {
+		} catch (const common::StreamError &ex) {
 			throw Exception(api::WALLET_FILE_READ_ERROR, std::string("Error reading wallet file ") + ex.what());
 		} catch (const std::exception &ex) {
 			throw Exception(api::WALLET_FILE_DECRYPT_ERROR, std::string("Error decrypting wallet file ") + ex.what());
@@ -222,7 +217,7 @@ void Wallet::save(const std::string &export_path, bool view_only) {
 	uint8_t version = SERIALIZATION_VERSION_V2;
 	ContainerStoragePrefix prefix{};
 	encrypt_key_pair(
-	    prefix.encrypted_view_keys, m_view_public_key, m_view_secret_key, m_creation_timestamp, m_wallet_key);
+	    prefix.encrypted_view_keys, m_view_public_key, m_view_secret_key, m_oldest_timestamp, m_wallet_key);
 	uint64_t item_count = m_wallet_records.size();
 	f.write(&version, 1);
 	f.write(&prefix, sizeof(prefix));
@@ -254,7 +249,7 @@ void Wallet::save_and_check() {
 		throw Exception(api::WALLET_FILE_WRITE_ERROR, "Error writing wallet file - records do not match");
 	file.reset();
 	if (!platform::atomic_replace_file(tmp_path, m_path))
-		throw std::ios_base::failure("Error replacing wallet file");
+		throw Exception(api::WALLET_FILE_WRITE_ERROR, "Error replacing wallet file");
 	std::swap(file, other.file);
 }
 
@@ -269,7 +264,7 @@ void Wallet::export_view_only(const std::string &export_path) {
 	std::unique_ptr<platform::FileStream> export_file;
 	try {
 		export_file.reset(new platform::FileStream(export_path, platform::FileStream::READ_EXISTING));
-	} catch (const std::ios_base::failure &) {
+	} catch (const common::StreamError &) {
 		// file does not exist
 	}
 	if (export_file.get())  // opened ok
@@ -283,14 +278,14 @@ void Wallet::export_view_only(const std::string &export_path) {
 
 bool Wallet::operator==(const Wallet &other) const {
 	return m_view_public_key == other.m_view_public_key && m_view_secret_key == other.m_view_secret_key &&
-	       m_creation_timestamp == other.m_creation_timestamp && m_wallet_records == other.m_wallet_records;
+	       m_oldest_timestamp == other.m_oldest_timestamp && m_wallet_records == other.m_wallet_records;
 }
 
 std::pair<WalletRecord, bool> Wallet::generate_new_address(const SecretKey &sk, Timestamp ct) {
 	WalletRecord record{};
 	record.creation_timestamp = ct;
 	if (sk == SecretKey{})
-		crypto::random_keys(record.spend_public_key, record.spend_secret_key);
+		crypto::random_keypair(record.spend_public_key, record.spend_secret_key);
 	else {
 		record.spend_secret_key = sk;
 		if (!secret_key_to_public_key(sk, record.spend_public_key))
@@ -337,10 +332,10 @@ std::vector<WalletRecord> Wallet::generate_new_addresses(const std::vector<Secre
 }
 
 void Wallet::on_first_output_found(Timestamp ts) {
-	if (ts == 0 || m_creation_timestamp != 0)
+	if (ts == 0 || m_oldest_timestamp != 0)
 		return;
-	m_oldest_timestamp = m_creation_timestamp = ts;
-	first_record.creation_timestamp           = ts;
+	m_oldest_timestamp              = ts;
+	first_record.creation_timestamp = ts;
 	for (auto &&rec : m_wallet_records)
 		rec.second.creation_timestamp = ts;
 	std::cout << "Updating creation timestamp in a wallet file imported from keys..." << std::endl;
