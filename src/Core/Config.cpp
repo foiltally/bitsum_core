@@ -169,7 +169,7 @@ Config::Config(common::CommandLine &cmd)
 	            "# Uncomment line below and point it to desired blockchain location. Only full path is supported\r\n"
 	            "# You should manually move content of old data folder to new location after completely stopping "
 	            "bitsum\r\n\r\n"
-		    "# D:\\Bitsum\\data\r\n";
+	            "# D:\\bitsum\\data\r\n";
 	#else
 	        const char content[] =
 	            "# Edit this file to switch data folder\n"

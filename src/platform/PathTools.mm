@@ -23,7 +23,7 @@ std::string get_os_version_string() {
 }
 
 
-std::string getDefaultDataDirectory() {
+std::string get_default_data_directory() {
 	//namespace fs = boost::filesystem;
 	// Windows < Vista: C:\Documents and Settings\Username\Application Data\CRYPTONOTE_NAME
 	// Windows >= Vista: C:\Users\Username\AppData\Roaming\CRYPTONOTE_NAME
@@ -41,7 +41,7 @@ std::string getDefaultDataDirectory() {
 }
 
 std::string get_app_data_folder(const std::string & app_name) {
-	return getDefaultDataDirectory();
+	return get_default_data_directory();
 }
 
 }

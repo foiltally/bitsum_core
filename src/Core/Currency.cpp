@@ -125,7 +125,7 @@ bool Currency::check_block_checkpoint(Height index, const crypto::Hash &h, bool 
 	if (it->index != index)
 		return true;
 	is_checkpoint = true;
-	return common::pod_to_hex(h) == it->blockId;
+	return common::pod_to_hex(h) == it->block_id;
 }
 
 std::pair<Height, crypto::Hash> Currency::last_checkpoint() const {
@@ -133,7 +133,7 @@ std::pair<Height, crypto::Hash> Currency::last_checkpoint() const {
 		return std::make_pair(0, genesis_block_hash);
 	auto cp = CHECKPOINTS[checkpoint_count() - 1];
 	crypto::Hash ha{};
-	common::pod_from_hex(cp.blockId, ha);
+	common::pod_from_hex(cp.block_id, ha);
 	return std::make_pair(cp.index, ha);
 }
 
@@ -142,7 +142,7 @@ uint8_t Currency::get_block_major_version_for_height(Height height) const {
 		return 1;
 	if (height > upgrade_height_v2 && height <= upgrade_height_v3)
 		return 2;
-	return 3;  // info.height > currency.upgradeHeightV3
+	return 3;  // info.height > currency.upgrade_height_v3
 }
 
 uint32_t Currency::block_granted_full_reward_zone_by_block_version(uint8_t block_major_version) const {
@@ -160,15 +160,9 @@ bool Currency::get_block_reward(uint8_t block_major_version, size_t effective_me
 
 	Amount base_reward = (money_supply - already_generated_coins) >> emission_speed_factor;
 
-	//	size_t blockGrantedFullRewardZone =
-	// blockGrantedFullRewardZoneByBlockVersion(blockMajorVersion);
-	//	medianSize = std::max(medianSize, blockGrantedFullRewardZone);
-	//	if (currentBlockSize > 2 * medianSize)
-	//		return false;
-
-	Amount penalized_base_reward = getPenalizedAmount(base_reward, effective_median_size, current_block_size);
+	Amount penalized_base_reward = get_penalized_amount(base_reward, effective_median_size, current_block_size);
 	Amount penalized_fee =
-	    block_major_version >= 2 ? getPenalizedAmount(fee, effective_median_size, current_block_size) : fee;
+	    block_major_version >= 2 ? get_penalized_amount(fee, effective_median_size, current_block_size) : fee;
 
 	emission_change = penalized_base_reward - (fee - penalized_fee);
 	reward          = penalized_base_reward + penalized_fee;
@@ -199,7 +193,7 @@ bool Currency::construct_miner_tx(uint8_t block_major_version, Height height, si
 	tx.extra.clear();
 
 	KeyPair txkey = crypto::random_keypair();
-	add_transaction_public_key_to_extra(tx.extra, txkey.publicKey);
+	add_transaction_public_key_to_extra(tx.extra, txkey.public_key);
 	if (!extra_nonce.empty()) {
 		if (!add_extra_nonce_to_transaction_extra(tx.extra, extra_nonce)) {
 			return false;
@@ -218,9 +212,6 @@ bool Currency::construct_miner_tx(uint8_t block_major_version, Height height, si
 	}
 
 	std::vector<Amount> out_amounts;
-	//  decompose_amount_into_digits(blockReward, defaultDustThreshold,
-	//    [&outAmounts](uint64_t a_chunk) { outAmounts.push_back(a_chunk); },
-	//    [&outAmounts](uint64_t a_dust) { outAmounts.push_back(a_dust); });
 	decompose_amount(block_reward, default_dust_threshold, out_amounts);
 
 	if (max_outs == 0)
@@ -235,12 +226,12 @@ bool Currency::construct_miner_tx(uint8_t block_major_version, Height height, si
 		crypto::KeyDerivation derivation{};
 		crypto::PublicKey out_ephemeral_pub_key{};
 
-		bool r = crypto::generate_key_derivation(miner_address.view_public_key, txkey.secretKey, derivation);
+		bool r = crypto::generate_key_derivation(miner_address.view_public_key, txkey.secret_key, derivation);
 
 		if (!r) {
 			//      logger(ERROR, BrightRed)
 			//        << "while creating outs: failed to generate_key_derivation("
-			//        << minerAddress.view_public_key << ", " << txkey.secretKey <<
+			//        << miner_address.view_public_key << ", " << txkey.secret_key <<
 			//        ")";
 			return false;
 		}
@@ -251,7 +242,7 @@ bool Currency::construct_miner_tx(uint8_t block_major_version, Height height, si
 			//      logger(ERROR, BrightRed)
 			//        << "while creating outs: failed to derive_public_key("
 			//        << derivation << ", " << no << ", "
-			//        << minerAddress.spendPublicKey << ")";
+			//        << miner_address.spend_public_key << ")";
 			return false;
 		}
 
@@ -266,8 +257,8 @@ bool Currency::construct_miner_tx(uint8_t block_major_version, Height height, si
 
 	if (summary_amounts != block_reward) {
 		//    logger(ERROR, BrightRed) << "Failed to construct miner tx,
-		//    summaryAmounts = " << summaryAmounts << " not
-		//    equal blockReward = " << blockReward;
+		//    summary_amounts = " << summary_amounts << " not
+		//    equal block_reward = " << block_reward;
 		return false;
 	}
 
@@ -278,40 +269,41 @@ bool Currency::construct_miner_tx(uint8_t block_major_version, Height height, si
 	return true;
 }
 
-uint64_t Currency::getPenalizedAmount(uint64_t amount, size_t medianSize, size_t currentBlockSize) {
+uint64_t Currency::get_penalized_amount(uint64_t amount, size_t median_size, size_t current_block_size) {
 	static_assert(sizeof(size_t) >= sizeof(uint32_t), "size_t is too small");
-	assert(currentBlockSize <= 2 * medianSize);
-	assert(medianSize <= std::numeric_limits<uint32_t>::max());
-	assert(currentBlockSize <= std::numeric_limits<uint32_t>::max());
+	assert(current_block_size <= 2 * median_size);
+	assert(median_size <= std::numeric_limits<uint32_t>::max());
+	assert(current_block_size <= std::numeric_limits<uint32_t>::max());
 
 	if (amount == 0) {
 		return 0;
 	}
-	if (currentBlockSize <= medianSize) {
+	if (current_block_size <= median_size) {
 		return amount;
 	}
 
-	uint64_t productHi;
-	uint64_t productLo = mul128(amount, currentBlockSize * (UINT64_C(2) * medianSize - currentBlockSize), &productHi);
+	uint64_t product_hi;
+	uint64_t product_lo =
+	    mul128(amount, current_block_size * (UINT64_C(2) * median_size - current_block_size), &product_hi);
 
-	uint64_t penalizedAmountHi;
-	uint64_t penalizedAmountLo;
-	div128_32(productHi, productLo, static_cast<uint32_t>(medianSize), &penalizedAmountHi, &penalizedAmountLo);
-	div128_32(penalizedAmountHi, penalizedAmountLo, static_cast<uint32_t>(medianSize), &penalizedAmountHi,
-	    &penalizedAmountLo);
+	uint64_t penalized_amount_hi;
+	uint64_t penalized_amount_lo;
+	div128_32(product_hi, product_lo, static_cast<uint32_t>(median_size), &penalized_amount_hi, &penalized_amount_lo);
+	div128_32(penalized_amount_hi, penalized_amount_lo, static_cast<uint32_t>(median_size), &penalized_amount_hi,
+	    &penalized_amount_lo);
 
-	assert(0 == penalizedAmountHi);
-	assert(penalizedAmountLo < amount);
+	assert(0 == penalized_amount_hi);
+	assert(penalized_amount_lo < amount);
 
-	return penalizedAmountLo;
+	return penalized_amount_lo;
 }
 
-std::string Currency::getAccountAddressAsStr(uint64_t prefix, const AccountPublicAddress &adr) {
+std::string Currency::get_account_address_as_str(uint64_t prefix, const AccountPublicAddress &adr) {
 	BinaryArray ba = seria::to_binary(adr);
 	return common::base58::encode_addr(prefix, ba);
 }
 
-bool Currency::parseAccountAddressString(uint64_t &prefix, AccountPublicAddress &adr, const std::string &str) {
+bool Currency::parse_account_address_string(uint64_t &prefix, AccountPublicAddress &adr, const std::string &str) {
 	BinaryArray data;
 
 	if (!common::base58::decode_addr(str, prefix, data))
@@ -325,12 +317,12 @@ bool Currency::parseAccountAddressString(uint64_t &prefix, AccountPublicAddress 
 }
 
 std::string Currency::account_address_as_string(const AccountPublicAddress &account_public_address) const {
-	return getAccountAddressAsStr(public_address_base58_prefix, account_public_address);
+	return get_account_address_as_str(public_address_base58_prefix, account_public_address);
 }
 
 bool Currency::parse_account_address_string(const std::string &str, AccountPublicAddress &addr) const {
 	uint64_t prefix;
-	if (!parseAccountAddressString(prefix, addr, str)) {
+	if (!parse_account_address_string(prefix, addr, str)) {
 		return false;
 	}
 	if (prefix != public_address_base58_prefix) {
@@ -357,43 +349,43 @@ std::string Currency::format_amount(size_t number_of_decimal_places, SignedAmoun
 }
 
 bool Currency::parse_amount(size_t number_of_decimal_places, const std::string &str, Amount &amount) {
-	std::string strAmount = str;
-	boost::algorithm::trim(strAmount);
+	std::string str_amount = str;
+	boost::algorithm::trim(str_amount);
 
-	size_t pointIndex = strAmount.find_first_of('.');
-	size_t fractionSize;
-	if (std::string::npos != pointIndex) {
-		fractionSize = strAmount.size() - pointIndex - 1;
-		while (number_of_decimal_places < fractionSize && '0' == strAmount.back()) {
-			strAmount.erase(strAmount.size() - 1, 1);
-			--fractionSize;
+	size_t point_index = str_amount.find_first_of('.');
+	size_t fraction_size;
+	if (std::string::npos != point_index) {
+		fraction_size = str_amount.size() - point_index - 1;
+		while (number_of_decimal_places < fraction_size && '0' == str_amount.back()) {
+			str_amount.erase(str_amount.size() - 1, 1);
+			--fraction_size;
 		}
-		if (number_of_decimal_places < fractionSize) {
+		if (number_of_decimal_places < fraction_size) {
 			return false;
 		}
-		strAmount.erase(pointIndex, 1);
+		str_amount.erase(point_index, 1);
 	} else {
-		fractionSize = 0;
+		fraction_size = 0;
 	}
 
-	if (strAmount.empty()) {
+	if (str_amount.empty()) {
 		return false;
 	}
 
-	if (!std::all_of(strAmount.begin(), strAmount.end(), ::isdigit)) {
+	if (!std::all_of(str_amount.begin(), str_amount.end(), ::isdigit)) {
 		return false;
 	}
 
-	if (fractionSize < number_of_decimal_places) {
-		strAmount.append(number_of_decimal_places - fractionSize, '0');
+	if (fraction_size < number_of_decimal_places) {
+		str_amount.append(number_of_decimal_places - fraction_size, '0');
 	}
-	std::istringstream stream(strAmount);
+	std::istringstream stream(str_amount);
 	stream >> amount;
 	return !stream.fail();
 }
 
-Difficulty Currency::next_difficulty(Height blockIndex,
-    std::vector<Timestamp> timestamps, std::vector<Difficulty> cumulative_difficulties) const {
+Difficulty Currency::next_difficulty(Height block_index,
+	std::vector<Timestamp> timestamps, std::vector<Difficulty> cumulative_difficulties) const {
 	std::vector<Timestamp> timestamps_o(timestamps);
 	std::vector<Difficulty> cumulativeDifficulties_o(cumulative_difficulties);
 	size_t c_difficultyWindow = difficulty_window;
@@ -418,10 +410,11 @@ Difficulty Currency::next_difficulty(Height blockIndex,
 	assert(2 * c_difficultyCut <= c_difficultyWindow - 2);
 	if (length <= c_difficultyWindow - 2 * c_difficultyCut) {
 		cutBegin = 0;
-		cutEnd   = length;
-	} else {
+		cutEnd = length;
+	}
+	else {
 		cutBegin = (length - (c_difficultyWindow - 2 * c_difficultyCut) + 1) / 2;
-		cutEnd   = cutBegin + (c_difficultyWindow - 2 * c_difficultyCut);
+		cutEnd = cutBegin + (c_difficultyWindow - 2 * c_difficultyCut);
 	}
 	assert(cutBegin + 2 <= cutEnd && cutEnd <= length);
 	Timestamp timeSpan = timestamps[cutEnd - 1] - timestamps[cutBegin];
@@ -439,7 +432,7 @@ Difficulty Currency::next_difficulty(Height blockIndex,
 	}
 
 	//auto c = (low + timeSpan - 1) / timeSpan;
-	if (blockIndex >= 106195) {
+	if (block_index >= 106195) {
 		if (high != 0) {
 			return 0;
 		}
@@ -546,8 +539,8 @@ bool Currency::check_proof_of_work(const Hash &long_block_hash,
 		return check_proof_of_work_v2(long_block_hash, block, current_difficulty);
 	}
 	//  logger(ERROR, BrightRed) << "Unknown block major version: " <<
-	//  block.getBlock().major_version << "." <<
-	//  block.getBlock().minor_version;
+	//  block.get_block().major_version << "." <<
+	//  block.get_block().minor_version;
 	return false;
 }
 
@@ -600,7 +593,7 @@ Hash bytecoin::get_block_hash(const BlockTemplate &bh) {
 	BinaryArray ba2 = get_block_hashing_binary_array(bh);
 
 	if (bh.major_version >= 2) {
-		auto serializer        = makeParentBlockSerializer(bh, true, false);
+		auto serializer        = make_parent_block_serializer(bh, true, false);
 		BinaryArray parent_ba2 = seria::to_binary(serializer);
 		append(ba2, parent_ba2.begin(), parent_ba2.end());
 	}
@@ -618,7 +611,7 @@ Hash bytecoin::get_block_long_hash(const BlockTemplate &bh, crypto::CryptoNightC
 		return crypto_ctx.cn_slow_hash(raw_hashing_block.data(), raw_hashing_block.size());
 	}
 	if (bh.major_version >= 2) {
-		auto serializer               = makeParentBlockSerializer(bh, true, true);
+		auto serializer               = make_parent_block_serializer(bh, true, true);
 		BinaryArray raw_hashing_block = seria::to_binary(serializer);
 		return crypto_ctx.cn_slow_hash(raw_hashing_block.data(), raw_hashing_block.size());
 	}

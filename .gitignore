@@ -2,3 +2,4 @@
 bin
 libs
 /.vs
+/tests/wallet_file/*.wallet

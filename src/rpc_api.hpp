@@ -29,7 +29,7 @@ namespace api {
 struct EmptyStruct {};  // Used as a typedef for empty requests, which we have a lot
 
 typedef int32_t HeightOrDepth;  // If >= 0 - interpret as Height, if < 0 interpret as Depth, e.g. -1 means
-                                // top_block_height, -4 means 3 blocks back from topBlockHeight
+                                // top_block_height, -4 means 3 blocks back from top_block_height
 constexpr HeightOrDepth DEFAULT_CONFIRMATIONS = 5;
 
 struct Output {
@@ -37,7 +37,7 @@ struct Output {
 	PublicKey public_key;
 	uint32_t global_index = 0;
 	// Added from transaction
-	UnlockMoment unlock_time      = 0;  // timestamp | blockIndex, see function isTransactionSpendTimeUnlocked below
+	UnlockMoment unlock_time      = 0;  // timestamp | block_index, see function isTransactionSpendTimeUnlocked below
 	uint32_t index_in_transaction = 0;  // # of output, output keys depend on transaction_public_key and this index, so
 	                                    // they are different for the same address
 	// Added from block
@@ -61,7 +61,7 @@ struct Transfer {
 
 struct Transaction {
 	// Fields for new transactions.
-	UnlockMoment unlock_time = 0;          // timestamp | blockIndex, see function isTransactionSpendTimeUnlocked below
+	UnlockMoment unlock_time = 0;          // timestamp | block_index, see function isTransactionSpendTimeUnlocked below
 	std::vector<api::Transfer> transfers;  // includes only transfers we can view
 	Hash payment_id;         // omit or set to all zero-hash to indicate no payment id. Will be DEPRECATED in future
 	uint32_t anonymity = 0;  // recommended to set to DEFAULT_ANONYMITY_LEVEL for new transactions, for existing
@@ -144,7 +144,8 @@ enum return_code {
 	WALLET_FILE_EXISTS          = 209,  // Daemon never overwrites file during --generate-wallet.
 	WALLET_WITH_THE_SAME_VIEWKEY_IN_USE =
 	    210,  // Another walletd instance is using the same wallet file or another wallet file with the same view key.
-	WALLETD_WRONG_ARGS = 211
+	WALLETD_WRONG_ARGS             = 211,
+	WALLETD_EXPORTKEYS_MORETHANONE = 212  // We can export keys only if wallet file contains exactly 1 spend keypair
 };
 
 namespace walletd {
@@ -282,8 +283,9 @@ struct CreateTransaction {
 		                               // payment_id) and transfers. All positive transfers (amount > 0) will be added
 		                               // as outputs. For all negative transfers (amount < 0), spendable for requested
 		                               // sum and address will be selected and added as inputs
-		std::string spend_address;  // If this is not empty, will spend (and optimize) outputs for this address to get
-		                            // neccessary funds. Otherwise will spend any output in the wallet
+		std::vector<std::string>
+		    spend_addresses;  // If this is not empty, will spend (and optimize) outputs for this addresses to get
+		                      // neccessary funds. Otherwise will spend any output in the wallet
 		bool any_spend_address = false;  // if you set spend_address to empty, you should set any_spend_address to true.
 		                                 // This is protection against client bug when spend_address is forgotten or
 		                                 // accidentally set to null, etc
@@ -376,7 +378,7 @@ struct GetStatus {
 // Signature of this method will stabilize to the end of beta
 struct SyncBlocks {  // Used by walletd, block explorer, etc to sync to bytecoind
 	static std::string method() { return "sync_blocks"; }
-	static std::string binMethod() { return "/sync_blocks.bin"; }
+	static std::string bin_method() { return "/sync_blocks.bin"; }
 
 	struct Request {
 		static constexpr uint32_t MAX_COUNT = 1000;
@@ -386,10 +388,10 @@ struct SyncBlocks {  // Used by walletd, block explorer, etc to sync to bytecoin
 	};
 	struct SyncBlock {  // Signatures are checked by bytecoind so usually they are of no interest
 		api::BlockHeader header;
-		bytecoin::BlockTemplate
-		    bc_header;  // the only method returning actual BlockHeader from blockchain, not api::BlockHeader
-		std::vector<bytecoin::TransactionPrefix>
-		    bc_transactions;  // the only method returning actual Transaction from blockchain, not api::Transaction
+		bytecoin::BlockTemplate bc_header;
+		// the only method returning actual BlockHeader from blockchain, not api::BlockHeader
+		std::vector<bytecoin::TransactionPrefix> bc_transactions;
+		// the only method returning actual Transaction from blockchain, not api::Transaction
 		Hash base_transaction_hash;                         // BlockTemplate does not contain it
 		std::vector<std::vector<uint32_t>> global_indices;  // for each transaction
 	};
@@ -403,15 +405,15 @@ struct SyncBlocks {  // Used by walletd, block explorer, etc to sync to bytecoin
 // Signature of this method will stabilize to the end of beta
 struct SyncMemPool {  // Used by walletd sync process
 	static std::string method() { return "sync_mem_pool"; }
-	static std::string binMethod() { return "/sync_mem_pool.bin"; }
+	static std::string bin_method() { return "/sync_mem_pool.bin"; }
 	struct Request {
 		std::vector<Hash> known_hashes;  // Should be sent sorted
 	};
 	struct Response {
-		std::vector<Hash> removed_hashes;                    // Hashes no more in pool
-		std::vector<BinaryArray> added_binary_transactions;  // New raw transactions in pool
-		std::vector<api::Transaction>
-		    added_transactions;      // binary version of this method returns only hash and timestamp here
+		std::vector<Hash> removed_hashes;                                // Hashes no more in pool
+		std::vector<bytecoin::TransactionPrefix> added_bc_transactions;  // New raw transactions in pool
+		std::vector<api::Transaction> added_transactions;
+		// binary version of this method returns only hash and timestamp here
 		GetStatus::Response status;  // We save roundtrip during sync by also sending status here
 	};
 };

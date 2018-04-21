@@ -26,7 +26,7 @@ Node::Node(logging::ILogger &log, const Config &config, BlockChainState &block_c
     , m_p2p(log, config, m_peer_db, std::bind(&Node::client_factory, this, _1, _2))
     , m_commit_timer(std::bind(&Node::db_commit, this))
     , m_downloader(this, block_chain) {
-	const std::string old_path = platform::getDefaultDataDirectory(config.crypto_note_name);
+	const std::string old_path = platform::get_default_data_directory(config.crypto_note_name);
 	const std::string new_path = config.get_data_folder();
 
 	if (!config.is_testnet) {
@@ -338,9 +338,6 @@ void Node::advance_long_poll() {
 		if (method_status) {
 			last_json_resp.set_id(lit->original_json_request.get_id());
 			last_http_response.set_body(last_json_resp.get_body());
-			//			m_log(logging::INFO) << "advance_long_poll will
-			// reply to getStatus3 long poll json=" << last_http_response.body <<
-			// std::endl;
 		} else {
 			json_rpc::Response gbt_json_resp;
 			try {
@@ -353,13 +350,9 @@ void Node::advance_long_poll() {
 			} catch (const json_rpc::Error &err) {
 				gbt_json_resp.set_error(err);
 			} catch (const std::exception &e) {
-				gbt_json_resp.set_error(json_rpc::Error(json_rpc::errInternalError, e.what()));
+				gbt_json_resp.set_error(json_rpc::Error(json_rpc::INTERNAL_ERROR, e.what()));
 			}
 			last_http_response.set_body(gbt_json_resp.get_body());
-			//			m_log(logging::INFO) << "advance_long_poll will
-			// reply to getblocktemplate long poll json=" << last_http_response.body
-			// <<
-			// std::endl;
 		}
 		lit->original_who->write(std::move(last_http_response));
 		lit = m_long_poll_http_clients.erase(lit);
@@ -419,29 +412,9 @@ void Node::on_api_http_disconnect(http::Client *who) {
 }
 
 namespace {
-/*template<typename CommandRequest, typename CommandResponse>
-Node::HTTPHandlerFunction binMethod(bool (Node::*handler)(http::Client *who, http::RequestData &&raw_request,
-    json_rpc::Request &&raw_js_request, CommandRequest &&, CommandResponse &)) {
-    return [handler](Node *obj, http::Client *who, http::RequestData &&request, http::ResponseData &response) {
-
-        CommandRequest req{};
-        CommandResponse res{};
-
-        if (!loadFromBinaryKeyValue(req, request.body)) {
-            return false;
-        }
-
-        bool result = (obj->*handler)(who, std::move(request), json_rpc::Request(), std::move(req), res);
-        if (result) {
-            response.set_body(storeToBinaryKeyValueStr(res));
-            response.r.status = 200;
-        }
-        return result;
-    };
-}*/
 
 template<typename CommandRequest, typename CommandResponse>
-Node::HTTPHandlerFunction binMethod2(bool (Node::*handler)(http::Client *who, http::RequestData &&raw_request,
+Node::HTTPHandlerFunction bin_method(bool (Node::*handler)(http::Client *who, http::RequestData &&raw_request,
     json_rpc::Request &&raw_js_request, CommandRequest &&, CommandResponse &)) {
 	return [handler](Node *obj, http::Client *who, http::RequestData &&request, http::ResponseData &response) {
 
@@ -458,57 +431,34 @@ Node::HTTPHandlerFunction binMethod2(bool (Node::*handler)(http::Client *who, ht
 		return result;
 	};
 }
-
-template<typename Command>
-Node::HTTPHandlerFunction jsonMethod(bool (Node::*handler)(http::Client *who, http::RequestData &&raw_request,
-    json_rpc::Request &&raw_js_request, typename Command::request &&, typename Command::response &)) {
-	return [handler](Node *obj, http::Client *who, http::RequestData &&request, http::ResponseData &response) {
-
-		typename Command::request req{};
-		typename Command::response res{};
-
-		if (!loadFromJson(req, request.body)) {
-			return false;
-		}
-
-		bool result = (obj->*handler)(who, std::move(request), json_rpc::Request(), std::move(req), res);
-		if (result)
-			response.set_body(storeToJson(res));
-		return result;
-	};
-}
 }  // anonymous namespace
 
 const std::unordered_map<std::string, Node::HTTPHandlerFunction> Node::m_http_handlers = {
 
-    {api::bytecoind::SyncBlocks::binMethod(), binMethod2(&Node::on_wallet_sync3)},
-    {api::bytecoind::SyncMemPool::binMethod(), binMethod2(&Node::on_sync_mempool3)},
+    {api::bytecoind::SyncBlocks::bin_method(), bin_method(&Node::on_wallet_sync3)},
+    {api::bytecoind::SyncMemPool::bin_method(), bin_method(&Node::on_sync_mempool3)},
     {"/json_rpc", std::bind(&Node::process_json_rpc_request, std::placeholders::_1, std::placeholders::_2,
                       std::placeholders::_3, std::placeholders::_4)}};
 
-//{"getlastblockheader", JsonRpc::makeMemberMethod(&Node::on_get_last_block_header)},
-//{"getblockheaderbyhash", JsonRpc::makeMemberMethod(&Node::on_get_block_header_by_hash)},
-//{"getblockheaderbyheight", JsonRpc::makeMemberMethod(&Node::on_get_block_header_by_height)},
-
 const std::unordered_map<std::string, Node::JSONRPCHandlerFunction> Node::m_jsonrpc_handlers = {
-    {api::bytecoind::GetLastBlockHeaderLegacy::method(), json_rpc::makeMemberMethod(&Node::on_get_last_block_header)},
+    {api::bytecoind::GetLastBlockHeaderLegacy::method(), json_rpc::make_member_method(&Node::on_get_last_block_header)},
     {api::bytecoind::GetBlockHeaderByHashLegacy::method(),
-        json_rpc::makeMemberMethod(&Node::on_get_block_header_by_hash)},
+        json_rpc::make_member_method(&Node::on_get_block_header_by_hash)},
     {api::bytecoind::GetBlockHeaderByHeightLegacy::method(),
-        json_rpc::makeMemberMethod(&Node::on_get_block_header_by_height)},
-    {api::bytecoind::GetBlockTemplate::method(), json_rpc::makeMemberMethod(&Node::on_getblocktemplate)},
-    {api::bytecoind::GetBlockTemplate::method_legacy(), json_rpc::makeMemberMethod(&Node::on_getblocktemplate)},
-    {api::bytecoind::GetCurrencyId::method(), json_rpc::makeMemberMethod(&Node::on_get_currency_id)},
-    {api::bytecoind::GetCurrencyId::method_legacy(), json_rpc::makeMemberMethod(&Node::on_get_currency_id)},
-    {api::bytecoind::SubmitBlock::method(), json_rpc::makeMemberMethod(&Node::on_submitblock)},
-    {api::bytecoind::SubmitBlockLegacy::method(), json_rpc::makeMemberMethod(&Node::on_submitblock_legacy)},
-    {api::bytecoind::GetRandomOutputs::method(), json_rpc::makeMemberMethod(&Node::on_get_random_outputs3)},
-    {api::bytecoind::GetStatus::method(), json_rpc::makeMemberMethod(&Node::on_get_status3)},
-    {api::bytecoind::GetStatus::method2(), json_rpc::makeMemberMethod(&Node::on_get_status3)},
-    {api::bytecoind::SendTransaction::method(), json_rpc::makeMemberMethod(&Node::handle_send_transaction3)},
-    {api::bytecoind::CheckSendProof::method(), json_rpc::makeMemberMethod(&Node::handle_check_send_proof3)},
-    {api::bytecoind::SyncBlocks::method(), json_rpc::makeMemberMethod(&Node::on_wallet_sync3)},
-    {api::bytecoind::SyncMemPool::method(), json_rpc::makeMemberMethod(&Node::on_sync_mempool3)}};
+        json_rpc::make_member_method(&Node::on_get_block_header_by_height)},
+    {api::bytecoind::GetBlockTemplate::method(), json_rpc::make_member_method(&Node::on_getblocktemplate)},
+    {api::bytecoind::GetBlockTemplate::method_legacy(), json_rpc::make_member_method(&Node::on_getblocktemplate)},
+    {api::bytecoind::GetCurrencyId::method(), json_rpc::make_member_method(&Node::on_get_currency_id)},
+    {api::bytecoind::GetCurrencyId::method_legacy(), json_rpc::make_member_method(&Node::on_get_currency_id)},
+    {api::bytecoind::SubmitBlock::method(), json_rpc::make_member_method(&Node::on_submitblock)},
+    {api::bytecoind::SubmitBlockLegacy::method(), json_rpc::make_member_method(&Node::on_submitblock_legacy)},
+    {api::bytecoind::GetRandomOutputs::method(), json_rpc::make_member_method(&Node::on_get_random_outputs3)},
+    {api::bytecoind::GetStatus::method(), json_rpc::make_member_method(&Node::on_get_status3)},
+    {api::bytecoind::GetStatus::method2(), json_rpc::make_member_method(&Node::on_get_status3)},
+    {api::bytecoind::SendTransaction::method(), json_rpc::make_member_method(&Node::handle_send_transaction3)},
+    {api::bytecoind::CheckSendProof::method(), json_rpc::make_member_method(&Node::handle_check_send_proof3)},
+    {api::bytecoind::SyncBlocks::method(), json_rpc::make_member_method(&Node::on_wallet_sync3)},
+    {api::bytecoind::SyncMemPool::method(), json_rpc::make_member_method(&Node::on_sync_mempool3)}};
 
 bool Node::on_get_random_outputs3(http::Client *, http::RequestData &&, json_rpc::Request &&,
     api::bytecoind::GetRandomOutputs::Request &&request, api::bytecoind::GetRandomOutputs::Response &response) {
@@ -639,7 +589,8 @@ bool Node::on_sync_mempool3(http::Client *, http::RequestData &&, json_rpc::Requ
 			res.removed_hashes.push_back(ex);
 	for (auto &&tx : pool)
 		if (!std::binary_search(req.known_hashes.begin(), req.known_hashes.end(), tx.first)) {
-			res.added_binary_transactions.push_back(seria::to_binary(tx.second));
+			//			res.added_binary_transactions.push_back(seria::to_binary(tx.second));
+			res.added_bc_transactions.push_back(tx.second);
 			res.added_transactions.push_back(api::Transaction{});
 			res.added_transactions.back().hash      = tx.first;
 			res.added_transactions.back().timestamp = m_block_chain.read_first_seen_timestamp(tx.first);
@@ -710,74 +661,3 @@ bool Node::handle_check_send_proof3(http::Client *, http::RequestData &&, json_r
 	// here proof is checked, validation_error is empty
 	return true;
 }
-
-/*static void parse_raw_transaction(api::Transaction & ptx, const Currency &
-currency, const Transaction & tx, const std::vector<uint32_t> &global_indices,
-Hash tid, Height block_height, Timestamp block_unlock_timestamp){
-        PublicKey tx_public_key = get_transaction_public_key_from_extra(tx.extra);
-        KeyPair tx_keys;
-        ptx.hash         = tid;
-        ptx.block_height = block_height;
-        ptx.anonymity    = std::numeric_limits<uint32_t>::max();
-        ptx.unlock_time  = tx.unlock_time;
-        const bool tx_unlocked =
-currency.is_transaction_spend_time_unlocked(ptx.unlock_time, block_height,
-block_unlock_timestamp);
-        ptx.public_key   = tx_public_key;
-        ptx.extra        = tx.extra;
-        get_payment_id_from_tx_extra(tx.extra, ptx.payment_id);
-        size_t key_index     = 0;
-        uint32_t out_index   = 0;
-        Amount output_amount = 0;
-        // We combine outputs into transfers by address
-        for (const auto &output : tx.outputs) {
-                const auto global_index = global_indices.at(out_index);
-                output_amount += output.amount;
-                ptx.fee -= output.amount;
-                if (output.target.type() == typeid(KeyOutput)) {
-                        const KeyOutput &key_output =
-boost::get<KeyOutput>(output.target);
-                        api::Output out;
-                        out.amount      = output.amount;
-                        out.dust      = Currency::is_dust(output.amount);
-                        out.global_index = global_index;
-                        out.height      = block_height;
-                        out.index_in_tx   = out_index;
-                        out.public_key         = key_output.key;
-                        out.transaction_public_key       = tx_public_key;
-                        out.unlock_time = tx.unlock_time;
-                        api::Transfer transfer;
-                        transfer.amount  = output.amount;
-                        transfer.locked = !tx_unlocked;
-                        transfer.outputs.push_back(out);
-                        ptx.transfers.push_back(std::move(transfer));
-                        ++key_index;
-                }
-                ++out_index;
-        }
-        Amount input_amount  = 0;
-        for (const auto &input : tx.inputs) {
-                if (input.type() == typeid(CoinbaseInput)) {
-                        api::Transfer transfer;
-                        transfer.amount =
--static_cast<SignedAmount>(output_amount);
-                        ptx.transfers.push_back(std::move(transfer));
-                } else if (input.type() == typeid(KeyInput)) {
-                        const KeyInput &in = boost::get<KeyInput>(input);
-                        input_amount += in.amount;
-                        ptx.fee += in.amount;
-                        ptx.anonymity = std::min(ptx.anonymity,
-static_cast<uint32_t>(in.output_indexes.size()));
-                        api::Output out;
-                        out.key_image = in.key_image;
-                        api::Transfer transfer;
-                        transfer.amount -= in.amount;
-                        transfer.outputs.push_back(out);
-                        ptx.transfers.push_back(std::move(transfer));
-                }
-        }
-        ptx.amount = std::max(input_amount, output_amount);
-        if (ptx.anonymity == std::numeric_limits<uint32_t>::max())
-                ptx.anonymity = 0;  // No key inputs
-}
-*/
