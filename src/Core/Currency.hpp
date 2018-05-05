@@ -28,8 +28,13 @@ public:
 	uint64_t public_address_base58_prefix;
 	Height mined_money_unlock_window;
 
+	Height timestamp_check_window_by_height(Height index) const;
+	Timestamp block_future_time_limit_by_height(Height index) const;
+
 	Height timestamp_check_window;
 	Timestamp block_future_time_limit;
+	Height timestamp_check_window_v2;
+	Timestamp block_future_time_limit_v2;
 
 	Amount money_supply;
 	unsigned int emission_speed_factor;

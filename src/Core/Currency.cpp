@@ -55,7 +55,9 @@ Currency::Currency(bool is_testnet)
     , public_address_base58_prefix(parameters::CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX)
     , mined_money_unlock_window(parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW)
     , timestamp_check_window(parameters::BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW)
+    , timestamp_check_window_v2(parameters::BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW_V2)
     , block_future_time_limit(parameters::CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT)
+    , block_future_time_limit_v2(parameters::CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT_V2)
     , money_supply(parameters::MONEY_SUPPLY)
     , emission_speed_factor(parameters::EMISSION_SPEED_FACTOR)
     , reward_blocks_window(parameters::CRYPTONOTE_REWARD_BLOCKS_WINDOW)
@@ -102,6 +104,16 @@ Currency::Currency(bool is_testnet)
 		++genesis_block_template.nonce;
 	}
 	genesis_block_hash = get_block_hash(genesis_block_template);
+}
+
+Height Currency::timestamp_check_window_by_height(Height index) const
+{
+	return index >= parameters::HARDFORK_V2_HEIGHT ? timestamp_check_window_v2 : timestamp_check_window;
+}
+
+Timestamp Currency::block_future_time_limit_by_height(Height index) const
+{
+	return index >= parameters::HARDFORK_V2_HEIGHT ? block_future_time_limit_v2 : block_future_time_limit;
 }
 
 size_t Currency::checkpoint_count() const { return is_testnet ? 1 : sizeof(CHECKPOINTS) / sizeof(*CHECKPOINTS); }
@@ -432,7 +444,7 @@ Difficulty Currency::next_difficulty(Height block_index,
 	}
 
 	//auto c = (low + timeSpan - 1) / timeSpan;
-	if (block_index >= 106195) {
+	if (block_index >= parameters::HARDFORK_V1_HEIGHT) {
 		if (high != 0) {
 			return 0;
 		}

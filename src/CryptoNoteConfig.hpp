@@ -13,14 +13,16 @@
 namespace bytecoin {
 namespace parameters {
 
+const uint32_t DIFFICULTY_TARGET                       = 120;  // seconds
 const uint32_t CRYPTONOTE_MAX_BLOCK_NUMBER             = 500000000;
 const uint32_t CRYPTONOTE_MAX_BLOCK_BLOB_SIZE          = 500000000;
 const uint32_t CRYPTONOTE_MAX_TX_SIZE                  = 1000000000;
 const uint64_t CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 154; // addresses start with "Sm"
 const uint32_t CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW    = 10;
 const uint32_t CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT      = 60 * 60 * 2;
-
-const uint32_t BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW = 60;
+const uint32_t CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT_V2   = DIFFICULTY_TARGET * 3;
+const uint32_t BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW       = 60;
+const uint32_t BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW_V2    = 11;
 
 // MONEY_SUPPLY - total number coins to be generated
 const uint64_t MONEY_SUPPLY          = std::numeric_limits<uint64_t>::max();
@@ -38,7 +40,6 @@ const size_t CRYPTONOTE_DISPLAY_DECIMAL_POINT       = 10;
 const uint64_t MINIMUM_FEE                          = 1000000;  // pow(10, 6)
 const uint64_t DEFAULT_DUST_THRESHOLD               = 1000000;  // pow(10, 6)
 
-const uint32_t DIFFICULTY_TARGET = 120;  // seconds
 constexpr uint32_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY(uint32_t difficulty_target) {
 	return 24 * 60 * 60 / difficulty_target;
 }
@@ -70,6 +71,9 @@ const uint32_t CRYPTONOTE_MEMPOOL_TX_LIVETIME = 60 * 60 * 24;  // seconds, one d
 // const size_t FUSION_TX_MAX_SIZE = CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_CURRENT * 30 / 100;
 // const size_t FUSION_TX_MIN_INPUT_COUNT = 12;
 // const size_t FUSION_TX_MIN_IN_OUT_COUNT_RATIO = 4;
+
+const uint32_t HARDFORK_V1_HEIGHT = 106195;
+const uint32_t HARDFORK_V2_HEIGHT = 4294967294;
 
 const uint32_t UPGRADE_HEIGHT_V2 = 1;
 const uint32_t UPGRADE_HEIGHT_V3 = 2;

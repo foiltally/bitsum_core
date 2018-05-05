@@ -193,7 +193,7 @@ std::string BlockChainState::get_standalone_consensus_error(
 			return "PARENT_BLOCK_SIZE_TOO_BIG";
 	}
 	const uint64_t now = time(nullptr);  // It would be better to pass now through Node
-	if (block.header.timestamp > now + m_currency.block_future_time_limit)
+	if (block.header.timestamp > now + m_currency.block_future_time_limit_by_height(get_tip_height() + 1))
 		return "TIMESTAMP_TOO_FAR_IN_FUTURE";
 	if (block.header.timestamp < info.timestamp_median)
 		return "TIMESTAMP_TOO_FAR_IN_PAST";
@@ -296,10 +296,10 @@ void BlockChainState::calculate_consensus_values(Height height_delta, uint32_t &
 		last_blocks_sizes.push_back(it->block_size);
 	next_median_size = common::median_value(last_blocks_sizes);
 
-	window = get_tip_segment(height_delta, m_currency.timestamp_check_window, false);
-	if (window.second - window.first >= static_cast<ptrdiff_t>(m_currency.timestamp_check_window)) {
+	window = get_tip_segment(height_delta, m_currency.timestamp_check_window_by_height(get_tip_height() + 1), false);
+	if (window.second - window.first >= static_cast<ptrdiff_t>(m_currency.timestamp_check_window_by_height(get_tip_height() + 1))) {
 		std::vector<Timestamp> timestamps;
-		timestamps.reserve(m_currency.timestamp_check_window);
+		timestamps.reserve(m_currency.block_future_time_limit_by_height(get_tip_height() + 1));
 		for (auto it = window.first; it != window.second; ++it)
 			timestamps.push_back(it->timestamp);
 		next_median_timestamp = common::median_value(timestamps);  // sorts timestamps
@@ -307,10 +307,10 @@ void BlockChainState::calculate_consensus_values(Height height_delta, uint32_t &
 		// unlike median_value, here we select lesser of 2 middle values for
 		// even-sized array, so
 		// that m_next_unlock_timestamp will never decrease with block number
-		if (next_unlock_timestamp < m_currency.block_future_time_limit)
+		if (next_unlock_timestamp < m_currency.block_future_time_limit_by_height(get_tip_height() + 1))
 			next_unlock_timestamp = 0;
 		else
-			next_unlock_timestamp -= m_currency.block_future_time_limit;
+			next_unlock_timestamp -= m_currency.block_future_time_limit_by_height(get_tip_height() + 1);
 	} else {
 		next_median_timestamp = 0;
 		next_unlock_timestamp = 0;

@@ -483,7 +483,7 @@ void Node::DownloaderV1::advance_download(Hash last_downloaded_block) {
 		}
 		auto now = m_node->m_p2p.get_local_time();
 		if (worst_client &&
-		    m_block_chain.get_tip().timestamp + m_block_chain.get_currency().block_future_time_limit < now &&
+		    m_block_chain.get_tip().timestamp + m_block_chain.get_currency().block_future_time_limit_by_height(m_block_chain.get_tip().height) < now &&
 		    m_good_clients.size() > m_node->m_config.p2p_default_connections_count / 2) {
 			std::cout << "All outgoing peers are far behind, disconnecting one" << std::endl;
 			m_node->m_peer_db.delay_connection_attempt(worst_client->get_address(), now);
