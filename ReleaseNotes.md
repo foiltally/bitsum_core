@@ -1,5 +1,8 @@
 ## Release Notes
 
+### v1.18.5.10
+- Merge code with bytecoin v3.0.4
+
 ### v1.18.4.20
 - Merge code with bytecoin v3.0.2
 

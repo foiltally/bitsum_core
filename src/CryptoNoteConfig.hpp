@@ -74,8 +74,8 @@ const uint32_t CRYPTONOTE_MEMPOOL_TX_LIVETIME = 60 * 60 * 24;  // seconds, one d
 const uint32_t UPGRADE_HEIGHT_V2 = 1;
 const uint32_t UPGRADE_HEIGHT_V3 = 2;
 
-const char CRYPTONOTE_BLOCKS_FILENAME[]       = "blocksx.bin";
-const char CRYPTONOTE_BLOCKINDEXES_FILENAME[] = "blockindexesx.bin";
+const char CRYPTONOTE_BLOCKS_FILENAME[]       = "blocks.bin";
+const char CRYPTONOTE_BLOCKINDEXES_FILENAME[] = "blockindexes.bin";
 }  // parameters
 
 const char CRYPTONOTE_NAME[] = "bitsum";
@@ -107,10 +107,10 @@ const char     P2P_STAT_TRUSTED_PUB_KEY[] = "7faf1b1a49aea1f5bc50f5df7b9087b622d
 
 const char *const SEED_NODES[] = {
 	"89.40.4.205:28080",
-	"188.166.29.175:28080",
-	"80.209.227.121:28080",
-	"31.135.214.69:28080",
-	"178.218.207.75:28080",
+	"109.235.66.242:28080",
+//	"80.209.227.121:28080",
+//	"31.135.214.69:28080",
+//	"178.218.207.75:28080",
 };
 
 struct CheckpointData {
@@ -129,11 +129,8 @@ constexpr const CheckpointData CHECKPOINTS[] = {
 	{ 80000,  "ce5ed3d782c172ef872303e01c59b99869dc1d4a9e9ac00c9d2230f26fd1df51" },
 	{ 90000,  "b8805db44aed06d03278c648648727095eaf232914f8b39fdf7f11fbb39df3fd" },
 	{ 100000, "e44dca8383873edf13ee44ca5f177a6cce6aa12e46533ce2791ecbc3b36538d1" },
-	{ 106153, "597a09b94cbfccdc532c28f668db658cb76edfcbab0151f207599488734f79c9" },
-	{ 106195, "8cdb2723b88515c57281ff73e3b30c0e924aec284528b04748a57c5f77ea0c76" },
 	{ 110000, "9041572d83e741652781036bc669756cfe1568b32053789fd91f17b2b1843049" },
-	{ 114595, "1cf88d40550f0aee26921008296cc775d5fd9d4d3fab3b66bf9f12fe2b25d28b" },
 	{ 120000, "7d214e3433a4d008e8e541cfe1b2749f2ae1d105a1e8694ee5c09c82d26be855" },
-	
+	{ 130000, "80add5a415bf8c325497923e039db00de2a086a9dda95e142b03f267e7b7d0c0" },
 };
 }  // CryptoNote

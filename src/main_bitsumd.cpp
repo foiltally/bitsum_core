@@ -23,12 +23,12 @@ Usage:
   bitsumd --version | -v
 
 Options:
-  --export-blocks=<directory>          Export blockchain into specified directory as blocksx.bin and blockindexesx.bin, then exit. This overwrites existing files.
+  --export-blocks=<directory>          Export blockchain into specified directory as blocks.bin and blockindexes.bin, then exit. This overwrites existing files.
   --allow-local-ip                     Allow local ip add to peer list, mostly in debug purposes.
   --testnet                            Configure for testnet.
   --p2p-bind-address=<ip:port>         Interface and port for P2P network protocol [default: 0.0.0.0:28080].
   --p2p-external-port=<port>           External port for P2P network protocol, if port forwarding used with NAT [default: 28080].
-  --daemon-rpc-bind-address=<ip:port>  Interface and port for bitsumd RPC [default: 0.0.0.0:28081].
+  --daemon-rpc-bind-address=<ip:port>  Interface and port for bitsumd RPC [default: 127.0.0.1:28081].
   --seed-node-address=<ip:port>        Specify list (one or more) of nodes to start connecting to.
   --priority-node-address=<ip:port>    Specify list (one or more) of nodes to connect to and attempt to keep the connection open.
   --exclusive-node-address=<ip:port>   Specify list (one or more) of nodes to connect to only. All other nodes including seed nodes will be ignored.

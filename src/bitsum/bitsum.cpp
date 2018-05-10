@@ -22,7 +22,8 @@ extern "C" int __DaemonRun()
 {
 	try
 	{
-		common::console::UnicodeConsoleSetup console_setup;
+		//common::console::UnicodeConsoleSetup console_setup;
+		std::cout.rdbuf(nullptr);
 		auto idea_start = std::chrono::high_resolution_clock::now();
 
 		common::CommandLine cmd(1, 0);
@@ -66,7 +67,8 @@ extern "C" _declspec(dllexport) int __WalletRun(char path[], char password[])
 extern "C" int __WalletRun(char path[], char password[])
 #endif
 {
-	common::console::UnicodeConsoleSetup console_setup;
+	//common::console::UnicodeConsoleSetup console_setup;
+	std::cout.rdbuf(nullptr);
 	auto idea_start = std::chrono::high_resolution_clock::now();
 	common::CommandLine cmd(1, 0);
 	bytecoin::Config config(cmd);
@@ -135,8 +137,7 @@ extern "C" int __WalletCreateContainer(char path[], char password[])
 
 	try {
 		wallet = std::make_unique<Wallet>(path, password, true);
-		
-		//Currency::parseAccountAddressString getAccountAddressAsStr(public_address_base58_prefix, account_public_address);
+
 		return 0;
 	}
 	catch (const std::ios_base::failure & ex) {
@@ -163,7 +164,8 @@ extern "C" int __WalletImportContainer(char path[], char password[], char keys[]
 
 	try {
 		wallet = std::make_unique<Wallet>(path, password, true, keys);
-
+		//auto addr = wallet->get_first_address();
+		//std::cout << Currency::get_account_address_as_str(154, addr);
 		return 0;
 	}
 	catch (const std::ios_base::failure & ex) {
@@ -226,4 +228,22 @@ extern "C" bool __CheckAddress(char address[])
 		return false;
 	}
 	return key_isvalid(adr.spend_public_key) && key_isvalid(adr.view_public_key);
+}
+
+#if defined(_WIN32)
+extern "C" _declspec(dllexport) bool __WalletCheckPassword(char path[], char password[])
+#else
+extern "C" bool __WalletCheckPassword(char path[], char password[])
+#endif
+{
+	std::unique_ptr<Wallet> wallet;
+	try
+	{
+		wallet = std::make_unique<Wallet>(path, password, false);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+		return false;
+	}
 }

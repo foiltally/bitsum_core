@@ -11,7 +11,7 @@ using namespace common;
 using namespace bytecoin;
 
 // Example
-//	LegacyBlockChainReader reader(import_path + "/blockindexesx.bin", import_path + "/blocksx.bin");
+//	LegacyBlockChainReader reader(import_path + "/blockindexes.bin", import_path + "/blocks.bin");
 //	std::cout << "Importing blocks count=" << reader.get_block_count() << std::endl;
 //	for(Height h = 0; h != reader.get_block_count(); ++h){
 //		PreparedBlock pb = reader.get_prepared_block_by_index(h);
@@ -165,11 +165,11 @@ bool LegacyBlockChainReader::import_blockchain2(const std::string &coin_folder, 
 	//	           "difference\tMedian - Timestamp"
 	//	        << std::endl;
 
-	LegacyBlockChainReader reader(coin_folder + "/blockindexesx.bin", coin_folder + "/blocksx.bin");
+	LegacyBlockChainReader reader(coin_folder + "/blockindexes.bin", coin_folder + "/blocks.bin");
 	const size_t bs_count = reader.get_block_count();
 	if (block_chain.get_tip_height() > bs_count) {
 		std::cout << "Skipping block chain import - we have more blocks than "
-		             "blocksx.bin tip_height="
+		             "blocks.bin tip_height="
 		          << block_chain.get_tip_height() << " bs_count=" << bs_count << std::endl;
 		return true;
 	}
@@ -226,7 +226,7 @@ bool LegacyBlockChainWriter::export_blockchain2(const std::string &export_folder
 	auto idea_start = std::chrono::high_resolution_clock::now();
 	std::cout << "Start exporting blocks" << std::endl;
 	LegacyBlockChainWriter writer(
-	    export_folder + "/blockindexesx.bin", export_folder + "/blocksx.bin", block_chain.get_tip_height() + 1);
+	    export_folder + "/blockindexes.bin", export_folder + "/blocks.bin", block_chain.get_tip_height() + 1);
 	for (Height ha = 0; ha != block_chain.get_tip_height() + 1; ++ha) {
 		Hash bid{};
 		RawBlock raw_block;

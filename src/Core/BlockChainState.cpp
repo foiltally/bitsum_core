@@ -141,6 +141,7 @@ BlockChainState::BlockChainState(logging::ILogger &log, const Config &config, co
 		if (add_block(pb, info) == BroadcastAction::BAN)
 			throw std::logic_error("Genesis block failed to add");
 	}
+	m_log(logging::INFO) << "BlockChainState::BlockChainState height=" << get_tip_height() << " bid=" << common::pod_to_hex(get_tip_bid()) << std::endl;
 	BlockChainState::tip_changed();
 }
 
@@ -159,9 +160,8 @@ std::string BlockChainState::get_standalone_consensus_error(
 	info.timestamp_median = m_next_median_timestamp;
 	info.timestamp_unlock = m_next_unlock_timestamp;
 
-	if (get_tip_height() != prev_info.height)  // Optimization for most common case
-		calculate_consensus_values(
-		    get_tip_height() - prev_info.height, info.size_median, info.timestamp_median, info.timestamp_unlock);
+	if (get_tip_bid() != prev_info.hash)  // Optimization for most common case
+		calculate_consensus_values(prev_info, info.size_median, info.timestamp_median, info.timestamp_unlock);
 
 	auto next_block_granted_full_reward_zone = m_currency.block_granted_full_reward_zone_by_block_version(
 	    block.header.major_version);  // We will check version later in this fun
@@ -229,12 +229,12 @@ std::string BlockChainState::get_standalone_consensus_error(
 		std::vector<Timestamp> timestamps;
 		std::vector<Difficulty> difficulties;
 		Height blocks_count    = std::min(prev_info.height, m_currency.difficulty_blocks_count());
-		auto timestamps_window = get_tip_segment(get_tip_height() - prev_info.height, blocks_count, false);
-		size_t actual_count    = timestamps_window.second - timestamps_window.first;
+		auto timestamps_window = get_tip_segment(prev_info, blocks_count, false);
+		size_t actual_count    = timestamps_window.size();
 		timestamps.resize(actual_count);
 		difficulties.resize(actual_count);
 		size_t pos = 0;
-		for (auto it = timestamps_window.first; it != timestamps_window.second; ++it, ++pos) {
+		for (auto it = timestamps_window.begin(); it != timestamps_window.end(); ++it, ++pos) {
 			timestamps.at(pos)   = it->timestamp;
 			difficulties.at(pos) = it->cumulative_difficulty;
 		}
@@ -287,20 +287,20 @@ std::string BlockChainState::get_standalone_consensus_error(
 	return std::string();
 }
 
-void BlockChainState::calculate_consensus_values(Height height_delta, uint32_t &next_median_size,
+void BlockChainState::calculate_consensus_values(const api::BlockHeader & prev_info, uint32_t &next_median_size,
     Timestamp &next_median_timestamp, Timestamp &next_unlock_timestamp) const {
 	std::vector<uint32_t> last_blocks_sizes;
-	auto window = get_tip_segment(height_delta, m_currency.reward_blocks_window, true);
+	auto window = get_tip_segment(prev_info, m_currency.reward_blocks_window, true);
 	last_blocks_sizes.reserve(m_currency.reward_blocks_window);
-	for (auto it = window.first; it != window.second; ++it)
+	for (auto it = window.begin(); it != window.end(); ++it)
 		last_blocks_sizes.push_back(it->block_size);
 	next_median_size = common::median_value(last_blocks_sizes);
 
-	window = get_tip_segment(height_delta, m_currency.timestamp_check_window, false);
-	if (window.second - window.first >= static_cast<ptrdiff_t>(m_currency.timestamp_check_window)) {
+	window = get_tip_segment(prev_info, m_currency.timestamp_check_window, false);
+	if (window.size() >= m_currency.timestamp_check_window) {
 		std::vector<Timestamp> timestamps;
 		timestamps.reserve(m_currency.timestamp_check_window);
-		for (auto it = window.first; it != window.second; ++it)
+		for (auto it = window.begin(); it != window.end(); ++it)
 			timestamps.push_back(it->timestamp);
 		next_median_timestamp = common::median_value(timestamps);  // sorts timestamps
 		next_unlock_timestamp = timestamps[timestamps.size() / 2];
@@ -318,7 +318,7 @@ void BlockChainState::calculate_consensus_values(Height height_delta, uint32_t &
 }
 
 void BlockChainState::tip_changed() {
-	calculate_consensus_values(0, m_next_median_size, m_next_median_timestamp, m_next_unlock_timestamp);
+	calculate_consensus_values(read_header(get_tip_bid()), m_next_median_size, m_next_median_timestamp, m_next_unlock_timestamp);
 }
 
 bool BlockChainState::create_mining_block_template(BlockTemplate &b, const AccountPublicAddress &adr,
@@ -331,8 +331,8 @@ bool BlockChainState::create_mining_block_template(BlockTemplate &b, const Accou
 		Height blocks_count = std::min(get_tip_height(), m_currency.difficulty_blocks_count());
 		timestamps.reserve(blocks_count);
 		difficulties.reserve(blocks_count);
-		auto timestamps_window = get_tip_segment(0, blocks_count, false);
-		for (auto it = timestamps_window.first; it != timestamps_window.second; ++it) {
+		auto timestamps_window = get_tip_segment(read_header(get_tip_bid()), blocks_count, false);
+		for (auto it = timestamps_window.begin(); it != timestamps_window.end(); ++it) {
 			timestamps.push_back(it->timestamp);
 			difficulties.push_back(it->cumulative_difficulty);
 		}
@@ -972,15 +972,18 @@ bool BlockChainState::redo_block(const Hash &bhash, const Block &block, const ap
 	if (std::chrono::duration_cast<std::chrono::milliseconds>(now - log_redo_block_timestamp).count() > 1000) {
 		log_redo_block_timestamp = now;
 		std::cout << "redo_block {" << block.transactions.size() << "} height=" << info.height
-		          << " bid=" << common::pod_to_hex(bhash) << " old tip_bid=" << common::pod_to_hex(get_tip_bid())
-		          << std::endl;
+		          << " bid=" << common::pod_to_hex(bhash) << std::endl;
 	}
+	m_log(logging::TRACE) << "redo_block {" << block.transactions.size() << "} height=" << info.height
+		          << " bid=" << common::pod_to_hex(bhash) << std::endl;
 	return true;
 }
 
 void BlockChainState::undo_block(const Hash &bhash, const Block &block, Height height) {
-	if (height % 100 == 0)
-		std::cout << "undo_block height=" << height << " bid=" << common::pod_to_hex(bhash)
+//	if (height % 100 == 0)
+//		std::cout << "undo_block height=" << height << " bid=" << common::pod_to_hex(bhash)
+//		          << " new tip_bid=" << common::pod_to_hex(block.header.previous_block_hash) << std::endl;
+	m_log(logging::INFO) << "undo_block height=" << height << " bid=" << common::pod_to_hex(bhash)
 		          << " new tip_bid=" << common::pod_to_hex(block.header.previous_block_hash) << std::endl;
 	for (auto tit = block.transactions.rbegin(); tit != block.transactions.rend(); ++tit) {
 		undo_transaction(this, height, *tit);

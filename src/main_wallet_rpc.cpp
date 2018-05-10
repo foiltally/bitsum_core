@@ -44,7 +44,7 @@ Options for built-in bitsumd (run when no --daemon-remote-address specified):
   --allow-local-ip                     Allow local ip add to peer list, mostly in debug purposes.
   --p2p-bind-address=<ip:port>         Interface and port for P2P network protocol [default: 0.0.0.0:28080].
   --p2p-external-port=<port>           External port for P2P network protocol, if port forwarding used with NAT [default: 28080].
-  --daemon-rpc-bind-address=<ip:port>  Interface and port for bitsumd RPC [default: 0.0.0.0:28081].
+  --daemon-rpc-bind-address=<ip:port>  Interface and port for bitsumd RPC [default: 127.0.0.1:28081].
   --seed-node-address=<ip:port>        Specify list (one or more) of nodes to start connecting to.
   --priority-node-address=<ip:port>    Specify list (one or more) of nodes to connect to and attempt to keep the connection open.
   --exclusive-node-address=<ip:port>   Specify list (one or more) of nodes to connect to only. All other nodes including seed nodes will be ignored.)";
@@ -164,7 +164,7 @@ int main(int argc, const char *argv[]) try {
 	std::unique_ptr<platform::ExclusiveLock> blockchain_lock;
 	try {
 		if (!config.bytecoind_remote_port)
-			blockchain_lock = std::make_unique<platform::ExclusiveLock>(coinFolder, "bytecoind.lock");
+			blockchain_lock = std::make_unique<platform::ExclusiveLock>(coinFolder, "bitsumd.lock");
 	} catch (const platform::ExclusiveLock::FailedToLock &ex) {
 		std::cout << "Bytecoind already running - " << ex.what() << std::endl;
 		return api::BYTECOIND_ALREADY_RUNNING;

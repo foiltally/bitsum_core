@@ -31,12 +31,12 @@ Node::Node(logging::ILogger &log, const Config &config, BlockChainState &block_c
 
 	if (!config.is_testnet) {
 		m_block_chain_reader1 =
-		    std::make_unique<LegacyBlockChainReader>(new_path + "/blockindexesx.bin", new_path + "/blocksx.bin");
+		    std::make_unique<LegacyBlockChainReader>(new_path + "/blockindexes.bin", new_path + "/blocks.bin");
 		if (m_block_chain_reader1->get_block_count() <= block_chain.get_tip_height())
 			m_block_chain_reader1.reset();
 		if (new_path != old_path) {  // Current situation on Linux
 			m_block_chain_reader2 =
-			    std::make_unique<LegacyBlockChainReader>(old_path + "/blockindexesx.bin", old_path + "/blocksx.bin");
+			    std::make_unique<LegacyBlockChainReader>(old_path + "/blockindexes.bin", old_path + "/blocks.bin");
 			if (m_block_chain_reader2->get_block_count() <= block_chain.get_tip_height())
 				m_block_chain_reader2.reset();
 		}
